@@ -12,7 +12,7 @@ import {
   fetchInstagramConnection,
   syncInstagramMetrics,
 } from "@/lib/instagram-client";
-import { isInstagramLoginConfiguredPublic } from "@/lib/instagram-login";
+import { isInstagramLoginConfiguredPublic } from "@/lib/instagram-config";
 import { useTranslation } from "@/lib/i18n/LanguageProvider";
 
 export function InstagramConnectBanner() {

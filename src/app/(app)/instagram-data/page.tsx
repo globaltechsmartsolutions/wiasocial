@@ -25,7 +25,7 @@ import {
   fetchInstagramFullData,
   syncInstagramMetrics,
 } from "@/lib/instagram-client";
-import { isInstagramLoginConfiguredPublic } from "@/lib/instagram-login";
+import { isInstagramLoginConfiguredPublic } from "@/lib/instagram-config";
 import type { InstagramFullData } from "@/types/instagram-data";
 import { formatNumber } from "@/lib/utils";
 import { cn } from "@/lib/utils";

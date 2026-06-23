@@ -1,3 +1,4 @@
+import "server-only";
 import crypto from "crypto";
 import { getAppUrl, getInstagramRedirectUri } from "@/lib/meta";
 
@@ -15,11 +16,6 @@ export function isInstagramLoginConfigured(): boolean {
   const id = getInstagramAppId();
   const secret = getInstagramAppSecret();
   return Boolean(id && secret && !id.includes("your_") && !id.includes("your_meta"));
-}
-
-export function isInstagramLoginConfiguredPublic(): boolean {
-  const id = process.env.NEXT_PUBLIC_INSTAGRAM_APP_ID ?? process.env.NEXT_PUBLIC_META_APP_ID ?? "";
-  return Boolean(id && !id.includes("your_") && !id.includes("your_meta"));
 }
 
 export function signInstagramOAuthState(userId: string): string {
