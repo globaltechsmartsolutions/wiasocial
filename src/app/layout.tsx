@@ -8,9 +8,13 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "WIA Instagram Growth OS",
+  title: "WIA Social",
   description:
     "Asistente legal de crecimiento con IA para creadores y agencias de Instagram. Generación de contenido, CRM de leads y planificación de engagement.",
+  icons: {
+    icon: "/icon",
+    apple: "/apple-icon",
+  },
 };
 
 export default function RootLayout({
