@@ -1,92 +1,90 @@
-# Conectar Instagram (métricas reales)
+# Conectar Instagram — Continuar con Instagram
 
-Importa **seguidores** y **métricas de posts** desde Instagram. Solo lectura — no publica ni hace follow/unfollow.
+Login directo con Instagram (sin Facebook). Solo lectura — importa perfil, posts, insights y comentarios.
 
-## Requisitos previos
+## Requisitos del cliente
 
-1. Cuenta **Instagram Business** o **Creator**
-2. **Página de Facebook** vinculada a esa cuenta
-3. Cuenta en https://developers.facebook.com
-
----
-
-## Paso 1 — Crear app en Meta
-
-1. https://developers.facebook.com → **My Apps** → **Create App**
-2. Tipo: **Business** (o Other)
-3. Nombre: `WIA Social`
-4. Añade producto **Instagram** → **Instagram API setup with Facebook login**
+1. Cuenta **Instagram Business** o **Creator** (gratis en ajustes de Instagram)
+2. **No hace falta** página de Facebook
 
 ---
 
-## Paso 2 — Configurar OAuth
+## Paso 1 — App en Meta Developers
 
-En **App settings** → **Basic**:
-- Copia **App ID** y **App Secret**
+1. https://developers.facebook.com → **Create App** → tipo **Business**
+2. Nombre: `WIA Social`
+3. Añade producto **Instagram** → **API setup with Instagram login**
 
-En **Facebook Login** → **Settings**:
-- **Valid OAuth Redirect URIs** — añade:
+---
 
+## Paso 2 — Business Login (Instagram)
+
+En **Instagram → API setup with Instagram login → Set up Instagram business login**:
+
+**OAuth Redirect URIs** — añade exactamente:
 ```
 https://wiasocial-production.up.railway.app/api/instagram/callback
 http://localhost:3000/api/instagram/callback
 ```
 
-En **App Mode**: empieza en **Development**. Añade tu cuenta como **Tester** en Roles.
+Copia de **Business login settings**:
+- **Instagram App ID**
+- **Instagram App Secret**
+
+(Pueden ser distintos del App ID general de Meta.)
 
 ---
 
-## Paso 3 — Permisos Instagram
+## Paso 3 — Permisos
 
-En Instagram API setup, solicita:
-- `instagram_basic`
-- `instagram_manage_insights`
-- `pages_show_list`
-- `pages_read_engagement`
-
-En Development mode funcionan con cuentas tester sin revisión de Meta.
+Solicita en App Review (o Development con testers):
+- `instagram_business_basic`
+- `instagram_business_manage_insights`
+- `instagram_business_manage_comments`
 
 ---
 
-## Paso 4 — Variables de entorno
-
-En **Railway** y `.env.local`:
+## Paso 4 — Variables en Railway
 
 ```env
-META_APP_ID=tu_app_id
-META_APP_SECRET=tu_app_secret
-NEXT_PUBLIC_META_APP_ID=tu_app_id
+INSTAGRAM_APP_ID=tu_instagram_app_id
+INSTAGRAM_APP_SECRET=tu_instagram_app_secret
+NEXT_PUBLIC_INSTAGRAM_APP_ID=tu_instagram_app_id
 NEXT_PUBLIC_APP_URL=https://wiasocial-production.up.railway.app
 SUPABASE_SERVICE_ROLE_KEY=tu_service_role_key
 ```
 
-`SUPABASE_SERVICE_ROLE_KEY` está en Supabase → Settings → API → `service_role` (secreta).
+También válido (fallback): `META_APP_ID` / `META_APP_SECRET` / `NEXT_PUBLIC_META_APP_ID`
 
 ---
 
 ## Paso 5 — SQL en Supabase
 
-Ejecuta `supabase/instagram-migration.sql` en SQL Editor.
+Ejecuta (o `npm run migrate:instagram` con `SUPABASE_DB_PASSWORD` en `.env.local`):
+1. `supabase/instagram-migration.sql`
+2. `supabase/instagram-full-data-migration.sql`
 
 ---
 
-## Paso 6 — Conectar en la app
+## Paso 6 — Experiencia del cliente
 
-1. **Ajustes** → **Conectar Instagram**
-2. Inicia sesión con Facebook
-3. Elige la página vinculada a tu Instagram
-4. **Sincronizar métricas**
+1. Registro en WIA Social
+2. **Continuar con Instagram** (un clic)
+3. Login con usuario/contraseña de Instagram
+4. Autorizar → datos sincronizados automáticamente
 
-Los datos aparecen en **Growth Tracker**, **Analytics** y **Centro de Datos Instagram** (`/instagram-data`).
+---
 
-### SQL adicional (datos completos)
+## Producción (todos los clientes)
 
-Ejecuta también `supabase/instagram-full-data-migration.sql` para perfil, comentarios, insights y stories.
+1. **Business Verification** en Meta
+2. **App Review** → modo **Live**
+3. Privacy Policy URL en la app (requerido por Meta)
 
 ---
 
 ## Notas
 
-- Los tokens duran ~60 días; reconecta si expiran
-- Insights pueden tardar en estar disponibles en posts recientes
-- Para producción pública, Meta puede pedir **App Review**
+- Tokens duran ~60 días; reconectar si expiran
+- Cuentas personales (no Business/Creator) no funcionan
+- DMs requieren permiso adicional + App Review

@@ -25,7 +25,7 @@ import {
   fetchInstagramFullData,
   syncInstagramMetrics,
 } from "@/lib/instagram-client";
-import { isMetaConfiguredPublic } from "@/lib/meta";
+import { isInstagramLoginConfiguredPublic } from "@/lib/instagram-login";
 import type { InstagramFullData } from "@/types/instagram-data";
 import { formatNumber } from "@/lib/utils";
 import { cn } from "@/lib/utils";
@@ -92,7 +92,7 @@ export default function InstagramDataPage() {
           <Instagram className="h-16 w-16 text-muted/30" />
           <h3 className="mt-4 text-lg font-semibold">{t.instagramData.notConnected}</h3>
           <p className="mt-2 max-w-md text-sm text-muted">{t.instagram.connectDesc}</p>
-          {isMetaConfiguredPublic() ? (
+          {isInstagramLoginConfiguredPublic() ? (
             <Button className="mt-6" onClick={connectInstagram}>
               <Instagram className="h-4 w-4" />
               {t.instagram.connect}

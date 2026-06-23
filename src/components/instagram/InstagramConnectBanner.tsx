@@ -12,7 +12,7 @@ import {
   fetchInstagramConnection,
   syncInstagramMetrics,
 } from "@/lib/instagram-client";
-import { isMetaConfiguredPublic } from "@/lib/meta";
+import { isInstagramLoginConfiguredPublic } from "@/lib/instagram-login";
 import { useTranslation } from "@/lib/i18n/LanguageProvider";
 
 export function InstagramConnectBanner() {
@@ -23,7 +23,7 @@ export function InstagramConnectBanner() {
   const [syncing, setSyncing] = useState(false);
   const [toast, setToast] = useState("");
 
-  const configured = isMetaConfiguredPublic();
+  const configured = isInstagramLoginConfiguredPublic();
 
   const load = async () => {
     setLoading(true);

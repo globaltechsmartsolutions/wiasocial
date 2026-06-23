@@ -11,7 +11,7 @@ import {
   fetchInstagramConnection,
   syncInstagramMetrics,
 } from "@/lib/instagram-client";
-import { isMetaConfiguredPublic } from "@/lib/meta";
+import { isInstagramLoginConfiguredPublic } from "@/lib/instagram-login";
 import { useTranslation } from "@/lib/i18n/LanguageProvider";
 
 export function InstagramConnectCard() {
@@ -79,7 +79,7 @@ export function InstagramConnectCard() {
     }
   };
 
-  const configured = isMetaConfiguredPublic();
+  const configured = isInstagramLoginConfiguredPublic();
 
   return (
     <div className="rounded-lg border border-lime/20 bg-lime/5 p-4">

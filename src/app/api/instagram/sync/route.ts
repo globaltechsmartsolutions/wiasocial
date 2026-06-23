@@ -13,7 +13,7 @@ export async function POST(request: Request) {
   const sb = getSupabaseForUser(token);
   const { data: connection, error } = await sb
     .from("instagram_connections")
-    .select("ig_user_id, access_token")
+    .select("ig_user_id, access_token, page_id")
     .eq("user_id", user.id)
     .single();
 
@@ -25,6 +25,7 @@ export async function POST(request: Request) {
     const result = await syncInstagramDataForUser(sb, user.id, {
       ig_user_id: connection.ig_user_id as string,
       access_token: connection.access_token as string,
+      loginType: connection.page_id ? "facebook" : "instagram",
     });
     return NextResponse.json(result);
   } catch (err) {

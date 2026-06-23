@@ -9,7 +9,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "migrate:instagram": "node --env-file=.env.local scripts/migrate-instagram.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.49.1",
@@ -17,6 +18,7 @@
     "lucide-react": "^0.475.0",
     "next": "^15.2.0",
     "openai": "^4.85.4",
+    "pg": "^8.22.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "tailwind-merge": "^3.0.1"

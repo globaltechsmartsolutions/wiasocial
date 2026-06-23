@@ -1,10 +1,17 @@
 import { NextResponse } from "next/server";
 import { getAccessTokenFromRequest, getUserFromAccessToken } from "@/lib/auth-server";
-import { buildInstagramAuthUrl, isMetaConfigured, signOAuthState } from "@/lib/meta";
+import {
+  buildInstagramLoginUrl,
+  isInstagramLoginConfigured,
+  signInstagramOAuthState,
+} from "@/lib/instagram-login";
 
 export async function GET(request: Request) {
-  if (!isMetaConfigured()) {
-    return NextResponse.json({ error: "Meta App no configurada. Añade META_APP_ID y META_APP_SECRET." }, { status: 503 });
+  if (!isInstagramLoginConfigured()) {
+    return NextResponse.json(
+      { error: "Instagram App no configurada. Añade INSTAGRAM_APP_ID e INSTAGRAM_APP_SECRET en Railway." },
+      { status: 503 }
+    );
   }
 
   const token = getAccessTokenFromRequest(request);
@@ -13,6 +20,6 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "Sesión inválida" }, { status: 401 });
   }
 
-  const state = signOAuthState(user.id);
-  return NextResponse.redirect(buildInstagramAuthUrl(state));
+  const state = signInstagramOAuthState(user.id);
+  return NextResponse.redirect(buildInstagramLoginUrl(state));
 }

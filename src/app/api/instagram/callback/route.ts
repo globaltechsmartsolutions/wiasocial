@@ -1,17 +1,12 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
-import {
-  exchangeCodeForToken,
-  exchangeForLongLivedToken,
-  findInstagramBusinessAccount,
-  getAppUrl,
-  verifyOAuthState,
-} from "@/lib/meta";
+import { getAppUrl } from "@/lib/meta";
+import { connectInstagramLoginAccount, verifyInstagramOAuthState } from "@/lib/instagram-login";
 import { syncInstagramDataForUser } from "@/lib/instagram-sync";
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
-  const code = searchParams.get("code");
+  const code = searchParams.get("code")?.replace(/#_$/, "");
   const state = searchParams.get("state");
   const error = searchParams.get("error_description") || searchParams.get("error");
 
@@ -23,18 +18,15 @@ export async function GET(request: Request) {
     return NextResponse.redirect(`${getAppUrl()}/settings?instagram=error&message=missing_code`);
   }
 
-  const userId = verifyOAuthState(state);
+  const userId = verifyInstagramOAuthState(state);
   if (!userId) {
     return NextResponse.redirect(`${getAppUrl()}/settings?instagram=error&message=invalid_state`);
   }
 
   try {
     const sb = getSupabaseAdmin();
-    const short = await exchangeCodeForToken(code);
-    const long = await exchangeForLongLivedToken(short.access_token);
-    const account = await findInstagramBusinessAccount(long.access_token);
-
-    const expiresAt = new Date(Date.now() + long.expires_in * 1000).toISOString();
+    const account = await connectInstagramLoginAccount(code);
+    const expiresAt = new Date(Date.now() + account.expiresIn * 1000).toISOString();
 
     const { error: dbError } = await sb
       .from("instagram_connections")
@@ -42,8 +34,8 @@ export async function GET(request: Request) {
         user_id: userId,
         ig_user_id: account.igUserId,
         ig_username: account.igUsername,
-        page_id: account.pageId,
-        access_token: account.pageAccessToken,
+        page_id: null,
+        access_token: account.accessToken,
         token_expires_at: expiresAt,
         followers_count: account.followersCount,
         media_count: account.mediaCount,
@@ -64,7 +56,8 @@ export async function GET(request: Request) {
     try {
       await syncInstagramDataForUser(sb, userId, {
         ig_user_id: account.igUserId,
-        access_token: account.pageAccessToken,
+        access_token: account.accessToken,
+        loginType: "instagram",
       });
       synced = true;
     } catch {
