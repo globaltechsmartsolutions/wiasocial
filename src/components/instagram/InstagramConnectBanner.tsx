@@ -105,6 +105,9 @@ export function InstagramConnectBanner() {
               {syncing ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
               {t.instagram.sync}
             </Button>
+            <Link href="/instagram-data">
+              <Button variant="secondary" size="sm">{t.instagramData.title}</Button>
+            </Link>
             <Link href="/growth-tracker">
               <Button variant="secondary" size="sm">{t.instagram.viewGrowth}</Button>
             </Link>

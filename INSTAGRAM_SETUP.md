@@ -77,7 +77,11 @@ Ejecuta `supabase/instagram-migration.sql` en SQL Editor.
 3. Elige la página vinculada a tu Instagram
 4. **Sincronizar métricas**
 
-Los datos aparecen en **Growth Tracker** y **Analytics**.
+Los datos aparecen en **Growth Tracker**, **Analytics** y **Centro de Datos Instagram** (`/instagram-data`).
+
+### SQL adicional (datos completos)
+
+Ejecuta también `supabase/instagram-full-data-migration.sql` para perfil, comentarios, insights y stories.
 
 ---
 

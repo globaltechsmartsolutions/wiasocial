@@ -24,6 +24,7 @@ import {
   BookOpen,
   ClipboardCheck,
   Bot,
+  Instagram,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useTranslation } from "@/lib/i18n/LanguageProvider";
@@ -63,6 +64,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
         { name: t.nav.profileAudit, href: "/profile-audit", icon: UserCheck },
         { name: t.nav.instagramAuditPro, href: "/instagram-audit-pro", icon: ClipboardCheck },
         { name: t.nav.bestTimes, href: "/best-times", icon: Clock },
+        { name: t.nav.instagramData, href: "/instagram-data", icon: Instagram },
         { name: t.nav.growthTracker, href: "/growth-tracker", icon: TrendingUp },
         { name: t.nav.competitors, href: "/competitors", icon: Swords },
       ],

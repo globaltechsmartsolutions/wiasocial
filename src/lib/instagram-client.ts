@@ -1,3 +1,4 @@
+import type { InstagramFullData } from "@/types/instagram-data";
 import { getSupabase } from "@/lib/supabase";
 
 async function getSessionToken(): Promise<string> {
@@ -27,8 +28,21 @@ export async function syncInstagramMetrics() {
     followers: number;
     gained: number;
     postsImported: number;
+    commentsImported?: number;
     username: string;
+    insightsLoaded?: number;
+    storiesLoaded?: number;
   };
+}
+
+export async function fetchInstagramFullData(): Promise<InstagramFullData> {
+  const token = await getSessionToken();
+  const res = await fetch("/api/instagram/data", {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || "Error al cargar datos de Instagram");
+  return data as InstagramFullData;
 }
 
 export async function disconnectInstagram() {

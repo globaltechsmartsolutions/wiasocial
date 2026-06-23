@@ -15,6 +15,16 @@ export interface UserAIContext {
     offer: string;
     defaultGoal: string;
   } | null;
+  instagram: {
+    connected: boolean;
+    username?: string;
+    biography?: string;
+    followers?: number;
+    following?: number;
+    posts?: number;
+    accountInsights?: { name: string; value: number }[];
+    topPosts?: { caption: string; likes: number; comments: number; reach: number }[];
+  } | null;
   stats: {
     totalLeads: number;
     callsBooked: number;
@@ -37,6 +47,51 @@ export async function buildUserAIContext(userId: string, accessToken: string): P
   ]);
 
   let latestAuditScore: number | null = null;
+  let instagramContext: UserAIContext["instagram"] = null;
+
+  try {
+    const { data: igConnection } = await sb
+      .from("instagram_connections")
+      .select("ig_username, profile_data, account_insights, followers_count, follows_count, media_count")
+      .eq("user_id", userId)
+      .maybeSingle();
+
+    if (igConnection) {
+      const profile = igConnection.profile_data as {
+        biography?: string;
+        username?: string;
+        followersCount?: number;
+        followsCount?: number;
+        mediaCount?: number;
+      } | null;
+
+      const { data: topMedia } = await sb
+        .from("instagram_media_items")
+        .select("caption, like_count, comments_count, insights")
+        .eq("user_id", userId)
+        .order("like_count", { ascending: false })
+        .limit(5);
+
+      instagramContext = {
+        connected: true,
+        username: igConnection.ig_username as string,
+        biography: profile?.biography,
+        followers: (igConnection.followers_count as number) ?? profile?.followersCount,
+        following: (igConnection.follows_count as number) ?? profile?.followsCount,
+        posts: (igConnection.media_count as number) ?? profile?.mediaCount,
+        accountInsights: ((igConnection.account_insights as { name: string; value: number }[]) ?? []).slice(0, 8),
+        topPosts: (topMedia ?? []).map((m) => ({
+          caption: ((m.caption as string) ?? "").slice(0, 120),
+          likes: m.like_count as number,
+          comments: m.comments_count as number,
+          reach: ((m.insights as Record<string, number>)?.reach) ?? 0,
+        })),
+      };
+    }
+  } catch {
+    instagramContext = null;
+  }
+
   try {
     const { data } = await sb
       .from("instagram_audits")
@@ -66,6 +121,7 @@ export async function buildUserAIContext(userId: string, accessToken: string): P
           defaultGoal: settings.defaultGoal,
         }
       : null,
+    instagram: instagramContext,
     stats: {
       totalLeads: leads.length,
       callsBooked: leads.filter((l) => l.status === "call_booked").length,
