@@ -24,7 +24,7 @@ export async function POST(request: Request) {
     messages: [
       {
         role: "system",
-        content: `Score this Instagram lead 0-100 for conversion likelihood. Use business context. Respond in ${lang}. JSON only: { "score": number, "reasoning": string, "nextAction": string, "dmTemplate": string }`,
+        content: `Act as a senior digital marketer and sales funnel strategist. Score this Instagram lead 0-100 for conversion likelihood using fit, intent, urgency, source, funnel stage and offer relevance. Recommend the next commercially useful action and write a natural DM that opens a conversation without spam or pressure. Respond in ${lang}. JSON only: { "score": number, "reasoning": string, "nextAction": string, "dmTemplate": string }`,
       },
       {
         role: "user",

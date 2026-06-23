@@ -52,7 +52,7 @@ export async function POST(request: Request) {
     messages: [
       {
         role: "system",
-        content: `You are a growth director. Generate a personalized daily brief for Instagram growth. Use ONLY provided context data. Respond in ${lang}. Return JSON only:
+        content: `You are a senior digital marketing director for Instagram-led businesses. Generate a personalized daily brief that connects content, audience, offer, funnel stage, lead generation and conversion. Use ONLY provided context data. Make every action measurable and commercially useful. Respond in ${lang}. Return JSON only:
 {
   "headline": string,
   "focus": string,
