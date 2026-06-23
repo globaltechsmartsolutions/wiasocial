@@ -1,7 +1,7 @@
 "use client";
 
 import { Suspense, useEffect, useState } from "react";
-import { Users, Phone, TrendingUp, Calendar, Lightbulb, ArrowRight, Target, Hash, UserCheck, Clock, Layers, Loader2 } from "lucide-react";
+import { Users, Phone, TrendingUp, Calendar, Lightbulb, ArrowRight, Target, Hash, UserCheck, Clock, Layers, Loader2, Megaphone, Workflow } from "lucide-react";
 import Link from "next/link";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { StatCard } from "@/components/ui/StatCard";
@@ -116,6 +116,8 @@ export default function DashboardPage() {
             { href: "/profile-audit", icon: UserCheck, label: t.nav.profileAudit },
             { href: "/best-times", icon: Clock, label: t.nav.bestTimes },
             { href: "/content-series", icon: Layers, label: t.nav.contentSeries },
+            { href: "/marketing-plan", icon: Megaphone, label: t.nav.marketingPlan },
+            { href: "/funnel-builder", icon: Workflow, label: t.nav.funnelBuilder },
           ].map((tool) => (
             <Link key={tool.href} href={tool.href} className="flex items-center gap-3 rounded-lg border border-border bg-surface-elevated p-4 hover:border-lime/30">
               <tool.icon className="h-5 w-5 text-lime" /><span className="text-sm font-medium">{tool.label}</span><ArrowRight className="h-3 w-3 text-muted ml-auto" />

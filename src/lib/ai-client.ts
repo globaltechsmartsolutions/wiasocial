@@ -1,5 +1,6 @@
 import { getSupabase } from "@/lib/supabase";
 import type { GrowthRadarReport } from "@/types/growth-radar";
+import type { InstagramFunnelPlan, MonthlyMarketingPlan } from "@/types/marketing-os";
 
 export async function callAI(action: string, params: Record<string, unknown> = {}, locale = "es") {
   const res = await fetch("/api/ai", {
@@ -49,6 +50,27 @@ export interface GrowthRadarResponse {
   createdAt?: string | null;
   updatedAt?: string | null;
   cached?: boolean;
+  setupRequired?: boolean;
+  message?: string;
+  persistenceWarning?: string | null;
+}
+
+export interface MarketingPlanResponse {
+  plan: MonthlyMarketingPlan | null;
+  planMonth: string | null;
+  createdAt?: string | null;
+  updatedAt?: string | null;
+  cached?: boolean;
+  setupRequired?: boolean;
+  message?: string;
+  persistenceWarning?: string | null;
+}
+
+export interface FunnelBuilderResponse {
+  funnel: InstagramFunnelPlan | null;
+  id?: string | null;
+  createdAt?: string | null;
+  updatedAt?: string | null;
   setupRequired?: boolean;
   message?: string;
   persistenceWarning?: string | null;
@@ -154,4 +176,57 @@ export async function generateGrowthRadar(locale = "es", force = false) {
   const data = await res.json();
   if (!res.ok) throw new Error(data.error || "Error al generar Radar IA");
   return data as GrowthRadarResponse;
+}
+
+export async function fetchMarketingPlan() {
+  const token = await getToken();
+  const res = await fetch("/api/marketing-plan", {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || "Error al cargar plan de marketing");
+  return data as MarketingPlanResponse;
+}
+
+export async function generateMarketingPlan(locale = "es", objective = "leads", force = false) {
+  const token = await getToken();
+  const res = await fetch("/api/marketing-plan", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ locale, objective, force }),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || "Error al generar plan de marketing");
+  return data as MarketingPlanResponse;
+}
+
+export async function fetchLatestFunnel() {
+  const token = await getToken();
+  const res = await fetch("/api/funnel-builder", {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || "Error al cargar funnel");
+  return data as FunnelBuilderResponse;
+}
+
+export async function generateFunnel(
+  payload: { offer: string; targetAudience: string; funnelGoal: string },
+  locale = "es"
+) {
+  const token = await getToken();
+  const res = await fetch("/api/funnel-builder", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ ...payload, locale }),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || "Error al generar funnel");
+  return data as FunnelBuilderResponse;
 }

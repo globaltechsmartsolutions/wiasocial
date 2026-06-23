@@ -26,6 +26,8 @@ import {
   Bot,
   Instagram,
   Radar,
+  Megaphone,
+  Workflow,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useTranslation } from "@/lib/i18n/LanguageProvider";
@@ -74,6 +76,8 @@ export function Sidebar({ open, onClose }: SidebarProps) {
       label: t.nav.sectionAI,
       items: [
         { name: t.nav.growthRadar, href: "/growth-radar", icon: Radar },
+        { name: t.nav.marketingPlan, href: "/marketing-plan", icon: Megaphone },
+        { name: t.nav.funnelBuilder, href: "/funnel-builder", icon: Workflow },
         { name: t.nav.aiCoach, href: "/ai-coach", icon: Bot },
       ],
     },
