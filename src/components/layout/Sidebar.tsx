@@ -23,6 +23,7 @@ import {
   Layers,
   BookOpen,
   ClipboardCheck,
+  Bot,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useTranslation } from "@/lib/i18n/LanguageProvider";
@@ -64,6 +65,12 @@ export function Sidebar({ open, onClose }: SidebarProps) {
         { name: t.nav.bestTimes, href: "/best-times", icon: Clock },
         { name: t.nav.growthTracker, href: "/growth-tracker", icon: TrendingUp },
         { name: t.nav.competitors, href: "/competitors", icon: Swords },
+      ],
+    },
+    {
+      label: t.nav.sectionAI,
+      items: [
+        { name: t.nav.aiCoach, href: "/ai-coach", icon: Bot },
       ],
     },
     {

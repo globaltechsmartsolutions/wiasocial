@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { Users, Plus, Search, Calendar, MessageSquare, Loader2 } from "lucide-react";
+import { Users, Plus, Search, Calendar, MessageSquare, Loader2, Brain, Copy, Check } from "lucide-react";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Card, CardHeader } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
@@ -14,7 +14,15 @@ import { formatDate } from "@/lib/utils";
 import { useTranslation } from "@/lib/i18n/LanguageProvider";
 import { useAuth } from "@/contexts/AuthContext";
 import { fetchLeads, createLead, updateLeadStatus } from "@/lib/db";
+import { scoreLead, type LeadIQResult } from "@/lib/ai-client";
 import type { Lead, LeadStatus } from "@/types";
+import { cn } from "@/lib/utils";
+
+function scoreLabel(score: number, t: { leadIq: { hot: string; warm: string; cold: string } }) {
+  if (score >= 70) return { label: t.leadIq.hot, className: "bg-lime/20 text-lime border-lime/30" };
+  if (score >= 40) return { label: t.leadIq.warm, className: "bg-amber-500/20 text-amber-400 border-amber-500/30" };
+  return { label: t.leadIq.cold, className: "bg-red-500/20 text-red-400 border-red-500/30" };
+}
 
 export default function LeadsPage() {
   const { t, locale } = useTranslation();
@@ -24,6 +32,10 @@ export default function LeadsPage() {
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
   const [showAddForm, setShowAddForm] = useState(false);
+  const [iqResults, setIqResults] = useState<Record<string, LeadIQResult>>({});
+  const [iqLoading, setIqLoading] = useState<string | null>(null);
+  const [expandedIq, setExpandedIq] = useState<string | null>(null);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
   const [newLead, setNewLead] = useState({
     username: "", fullName: "", niche: "", source: "Instagram DM", notes: "", followUpDate: "",
   });
@@ -70,6 +82,25 @@ export default function LeadsPage() {
   const handleStatusChange = async (id: string, status: LeadStatus) => {
     await updateLeadStatus(id, status);
     setLeads(leads.map((l) => (l.id === id ? { ...l, status } : l)));
+  };
+
+  const handleLeadIQ = async (lead: Lead) => {
+    setIqLoading(lead.id);
+    try {
+      const result = await scoreLead(lead as unknown as Record<string, unknown>, locale);
+      setIqResults((prev) => ({ ...prev, [lead.id]: result }));
+      setExpandedIq(lead.id);
+    } catch {
+      // ignore
+    } finally {
+      setIqLoading(null);
+    }
+  };
+
+  const copyDm = async (leadId: string, text: string) => {
+    await navigator.clipboard.writeText(text);
+    setCopiedId(leadId);
+    setTimeout(() => setCopiedId(null), 2000);
   };
 
   if (loading) {
@@ -140,8 +171,51 @@ export default function LeadsPage() {
                   </div>
                 </div>
               </div>
-              <Select id={`status-${lead.id}`} value={lead.status} onChange={(e) => handleStatusChange(lead.id, e.target.value as LeadStatus)} options={statusOptions} className="sm:w-48" />
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => handleLeadIQ(lead)}
+                  disabled={iqLoading === lead.id}
+                >
+                  {iqLoading === lead.id ? (
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                  ) : (
+                    <Brain className="h-3 w-3" />
+                  )}
+                  {iqResults[lead.id] ? `${t.leadIq.score}: ${iqResults[lead.id].score}` : t.leadIq.analyze}
+                </Button>
+                <Select id={`status-${lead.id}`} value={lead.status} onChange={(e) => handleStatusChange(lead.id, e.target.value as LeadStatus)} options={statusOptions} className="sm:w-48" />
+              </div>
             </div>
+            {iqResults[lead.id] && expandedIq === lead.id && (
+              <div className="mt-4 rounded-lg border border-lime/20 bg-lime/5 p-4 space-y-3">
+                <div className="flex items-center gap-3">
+                  <span className={cn("text-3xl font-bold", iqResults[lead.id].score >= 70 ? "text-lime" : iqResults[lead.id].score >= 40 ? "text-amber-400" : "text-red-400")}>
+                    {iqResults[lead.id].score}
+                  </span>
+                  <Badge className={scoreLabel(iqResults[lead.id].score, t).className}>
+                    {scoreLabel(iqResults[lead.id].score, t).label}
+                  </Badge>
+                </div>
+                <div>
+                  <p className="text-xs font-semibold uppercase text-muted">{t.leadIq.reasoning}</p>
+                  <p className="text-sm mt-1">{iqResults[lead.id].reasoning}</p>
+                </div>
+                <div>
+                  <p className="text-xs font-semibold uppercase text-muted">{t.leadIq.nextAction}</p>
+                  <p className="text-sm mt-1">{iqResults[lead.id].nextAction}</p>
+                </div>
+                <div>
+                  <p className="text-xs font-semibold uppercase text-muted">{t.leadIq.dmTemplate}</p>
+                  <p className="text-sm mt-1 whitespace-pre-wrap rounded-lg bg-surface-elevated p-3">{iqResults[lead.id].dmTemplate}</p>
+                  <Button variant="ghost" size="sm" className="mt-2" onClick={() => copyDm(lead.id, iqResults[lead.id].dmTemplate)}>
+                    {copiedId === lead.id ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
+                    {copiedId === lead.id ? t.leadIq.copied : t.leadIq.copyDm}
+                  </Button>
+                </div>
+              </div>
+            )}
           </Card>
         ))}
         {filteredLeads.length === 0 && (

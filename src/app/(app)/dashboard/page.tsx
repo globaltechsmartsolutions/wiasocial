@@ -12,6 +12,7 @@ import { formatNumber, formatDate, isToday } from "@/lib/utils";
 import { useTranslation } from "@/lib/i18n/LanguageProvider";
 import { useAuth } from "@/contexts/AuthContext";
 import { fetchLeads, fetchPosts, fetchFollowUps, fetchFollowerSnapshots } from "@/lib/db";
+import { DailyBriefCard } from "@/components/ai/DailyBriefCard";
 
 export default function DashboardPage() {
   const { t, locale } = useTranslation();
@@ -59,6 +60,10 @@ export default function DashboardPage() {
 
       <div className="mt-4">
         <StatCard title="Seguidores esta semana" value={`+${weekGain}`} icon={TrendingUp} trend={`+${weekGain} ganados`} trendUp />
+      </div>
+
+      <div className="mt-8">
+        <DailyBriefCard />
       </div>
 
       <div className="mt-8 grid gap-6 lg:grid-cols-2">
