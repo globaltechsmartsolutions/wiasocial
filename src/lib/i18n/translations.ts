@@ -16,6 +16,7 @@ export const translations = {
       hookAnalyzer: "Analizador de Ganchos",
       hashtags: "Hashtags",
       profileAudit: "Auditoría de Perfil",
+      instagramAuditPro: "Instagram Audit Pro",
       bestTimes: "Mejores Horarios",
       growthTracker: "Tracker Seguidores",
       competitors: "Competencia",
@@ -298,6 +299,13 @@ export const translations = {
       bioSuggestion: "Bio sugerida",
       checklist: "Checklist de perfil",
     },
+    instagramAuditPro: {
+      title: "Instagram Audit Pro",
+      description: "Auditoría profesional de marca personal, conversión y captación de leads",
+      runAudit: "Run Audit",
+      emptyTitle: "Sin auditoría aún",
+      emptyDesc: "Introduce un perfil de Instagram y ejecuta la auditoría para recibir puntuaciones y un plan de acción.",
+    },
     bestTimes: {
       title: "Mejores Horarios",
       description: "Cuándo publicar según tu audiencia y rendimiento",
@@ -383,6 +391,7 @@ export const translations = {
       hookAnalyzer: "Hook Analyzer",
       hashtags: "Hashtags",
       profileAudit: "Profile Audit",
+      instagramAuditPro: "Instagram Audit Pro",
       bestTimes: "Best Times",
       growthTracker: "Follower Tracker",
       competitors: "Competitors",
@@ -658,6 +667,13 @@ export const translations = {
       tip: "Recommendation",
       bioSuggestion: "Suggested bio",
       checklist: "Profile checklist",
+    },
+    instagramAuditPro: {
+      title: "Instagram Audit Pro",
+      description: "Professional audit for personal brand, conversion and lead capture",
+      runAudit: "Run Audit",
+      emptyTitle: "No audit yet",
+      emptyDesc: "Enter an Instagram profile and run the audit to get scores and an action plan.",
     },
     bestTimes: {
       title: "Best Times to Post",
