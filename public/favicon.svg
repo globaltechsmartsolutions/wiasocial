@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" aria-label="WIA Social">
+  <defs>
+    <linearGradient id="wia" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#d4ff00" />
+      <stop offset="1" stop-color="#a8e600" />
+    </linearGradient>
+  </defs>
+  <rect width="32" height="32" rx="8" fill="url(#wia)" />
+  <path
+    d="M19 6 9 18h9l-1 8 10-12h-9l1-8z"
+    fill="none"
+    stroke="#0a0a0a"
+    stroke-width="2.5"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  />
+</svg>

@@ -12,8 +12,13 @@ export const metadata: Metadata = {
   description:
     "Asistente legal de crecimiento con IA para creadores y agencias de Instagram. Generación de contenido, CRM de leads y planificación de engagement.",
   icons: {
-    icon: "/icon",
-    apple: "/apple-icon",
+    icon: [
+      { url: "/favicon.ico", sizes: "32x32" },
+      { url: "/icon", type: "image/png", sizes: "32x32" },
+      { url: "/favicon.svg", type: "image/svg+xml" },
+    ],
+    apple: [{ url: "/apple-icon", type: "image/png", sizes: "180x180" }],
+    shortcut: "/favicon.ico",
   },
 };
 
