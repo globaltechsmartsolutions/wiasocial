@@ -23,12 +23,38 @@ export async function connectInstagram() {
 
   const location = res.headers.get("Location");
   if (location) {
-    window.location.href = location;
+    openInstagramOAuth(location);
     return;
   }
 
   // Fallback for browsers that follow redirects differently
-  window.location.href = url;
+  openInstagramOAuth(url);
+}
+
+function openInstagramOAuth(url: string) {
+  const popup = window.open(
+    url,
+    "wia-instagram-connect",
+    "width=520,height=720,menubar=no,toolbar=no,location=yes,status=no"
+  );
+
+  if (!popup) {
+    window.location.href = url;
+    return;
+  }
+
+  const handler = (event: MessageEvent) => {
+    if (event.origin !== window.location.origin) return;
+    const data = event.data as { type?: string; redirectTo?: string };
+    if (data.type !== "wia:instagram-connected" && data.type !== "wia:instagram-error") return;
+
+    window.removeEventListener("message", handler);
+    popup.close();
+    window.location.href = data.redirectTo ?? "/dashboard";
+  };
+
+  window.addEventListener("message", handler);
+  popup.focus();
 }
 
 export async function syncInstagramMetrics() {
