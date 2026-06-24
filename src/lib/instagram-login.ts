@@ -118,7 +118,7 @@ export async function connectInstagramLoginAccount(code: string) {
   const profile = await fetchIgLoginProfile(short.userId, long.access_token);
 
   return {
-    igUserId: short.userId,
+    igUserId: profile.id,
     igUsername: profile.username,
     accessToken: long.access_token,
     expiresIn: long.expires_in,
@@ -160,6 +160,7 @@ async function igGraphGetUrl<T>(url: string): Promise<T> {
 export async function fetchIgLoginProfile(igUserId: string, accessToken: string) {
   const data = await igGraphGet<{
     id: string;
+    user_id?: string;
     username: string;
     name?: string;
     biography?: string;
@@ -168,12 +169,12 @@ export async function fetchIgLoginProfile(igUserId: string, accessToken: string)
     followers_count: number;
     follows_count: number;
     media_count: number;
-  }>(`/${igUserId}`, accessToken, {
-    fields: "id,username,name,biography,profile_picture_url,website,followers_count,follows_count,media_count",
+  }>("/me", accessToken, {
+    fields: "id,user_id,username,name,biography,profile_picture_url,website,followers_count,follows_count,media_count",
   });
 
   return {
-    id: data.id,
+    id: data.user_id ?? data.id ?? igUserId,
     username: data.username,
     name: data.name,
     biography: data.biography,
@@ -201,7 +202,7 @@ export async function fetchIgLoginAccountInsights(igUserId: string, accessToken:
 
   const data = await igGraphGetSafe<{
     data: { name: string; period: string; title?: string; description?: string; values: { value: number }[] }[];
-  }>(`/${igUserId}/insights`, accessToken, { metric: metrics, period: "days_28" });
+  }>("/me/insights", accessToken, { metric: metrics, period: "days_28" });
 
   return (data?.data ?? []).map((m) => ({
     name: m.name,
@@ -215,7 +216,7 @@ export async function fetchIgLoginAccountInsights(igUserId: string, accessToken:
 export async function fetchIgLoginAudienceInsights(igUserId: string, accessToken: string) {
   const online = await igGraphGetSafe<{
     data: { name: string; values: { value: Record<string, number> }[] }[];
-  }>(`/${igUserId}/insights`, accessToken, {
+  }>("/me/insights", accessToken, {
     metric: "online_followers",
     period: "lifetime",
   });
@@ -231,7 +232,7 @@ export async function fetchIgLoginAudienceInsights(igUserId: string, accessToken
 
   const demographics = await igGraphGetSafe<{
     data: { name: string; total_value?: unknown }[];
-  }>(`/${igUserId}/insights`, accessToken, {
+  }>("/me/insights", accessToken, {
     metric: "follower_demographics",
     period: "lifetime",
     metric_type: "total_value",
@@ -244,7 +245,7 @@ export async function fetchIgLoginAudienceInsights(igUserId: string, accessToken
 export async function fetchIgLoginStories(igUserId: string, accessToken: string) {
   const data = await igGraphGetSafe<{
     data: { id: string; media_type?: string; permalink?: string; timestamp: string }[];
-  }>(`/${igUserId}/stories`, accessToken, {
+  }>("/me/stories", accessToken, {
     fields: "id,media_type,permalink,timestamp",
   });
 
@@ -312,7 +313,7 @@ export async function fetchIgLoginMedia(igUserId: string, accessToken: string, l
   }[] = [];
 
   const first = await igGraphGet<{ data: typeof all; paging?: { next?: string } }>(
-    `/${igUserId}/media`,
+    "/me/media",
     accessToken,
     { fields, limit: "50" }
   );
