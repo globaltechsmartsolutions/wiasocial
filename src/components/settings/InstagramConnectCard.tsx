@@ -58,7 +58,7 @@ export function InstagramConnectCard() {
       load();
     }
     if (status === "error") {
-      setError(msg ? decodeURIComponent(msg) : (locale === "es" ? "Error al conectar Instagram" : "Instagram connection failed"));
+      setError(msg || (locale === "es" ? "Error al conectar Instagram" : "Instagram connection failed"));
     }
   }, [searchParams, t, locale]);
 
