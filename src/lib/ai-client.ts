@@ -3,9 +3,13 @@ import type { GrowthRadarReport } from "@/types/growth-radar";
 import type { InstagramFunnelPlan, MonthlyMarketingPlan } from "@/types/marketing-os";
 
 export async function callAI(action: string, params: Record<string, unknown> = {}, locale = "es") {
+  const token = await getToken();
   const res = await fetch("/api/ai", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
     body: JSON.stringify({ action, locale, ...params }),
   });
   const data = await res.json();

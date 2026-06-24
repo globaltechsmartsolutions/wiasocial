@@ -3,13 +3,14 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { Loader2, RefreshCw, CheckCircle2, AlertCircle } from "lucide-react";
+import { Loader2, RefreshCw, CheckCircle2, AlertCircle, LogOut } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { InstagramBrandIcon } from "@/components/icons/InstagramBrandIcon";
 import {
   connectInstagram,
+  disconnectInstagram,
   fetchInstagramConnection,
   syncInstagramMetrics,
 } from "@/lib/instagram-client";
@@ -23,6 +24,7 @@ export function InstagramConnectBanner() {
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
   const [connecting, setConnecting] = useState(false);
+  const [disconnecting, setDisconnecting] = useState(false);
   const [toast, setToast] = useState("");
 
   const configured = isInstagramLoginConfiguredPublic();
@@ -83,6 +85,20 @@ export function InstagramConnectBanner() {
     }
   };
 
+  const handleDisconnect = async () => {
+    setDisconnecting(true);
+    setToast("");
+    try {
+      await disconnectInstagram();
+      setConnection(null);
+      setToast(locale === "es" ? "Instagram desconectado" : "Instagram disconnected");
+    } catch (e) {
+      setToast(e instanceof Error ? e.message : "Error");
+    } finally {
+      setDisconnecting(false);
+    }
+  };
+
   if (loading) {
     return (
       <Card className="flex h-24 items-center justify-center">
@@ -94,14 +110,14 @@ export function InstagramConnectBanner() {
   if (connection) {
     return (
       <Card glow className="border-lime/30">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center gap-4">
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-purple-500/20 to-pink-500/20">
-              <InstagramBrandIcon className="h-7 w-7" />
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex min-w-0 items-center gap-4">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-xl">
+              <InstagramBrandIcon className="h-11 w-11" />
             </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <p className="font-semibold">@{connection.username}</p>
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-2">
+                <p className="truncate font-semibold">@{connection.username}</p>
                 <Badge className="bg-lime/20 text-lime border-lime/30">
                   <CheckCircle2 className="h-3 w-3 mr-1" />
                   {t.instagram.connectedBadge}
@@ -114,21 +130,25 @@ export function InstagramConnectBanner() {
               </p>
             </div>
           </div>
-          <div className="flex gap-2">
-            <Button onClick={handleSync} disabled={syncing} size="sm">
+          <div className="grid w-full grid-cols-1 gap-2 sm:grid-cols-2 lg:flex lg:w-auto lg:flex-wrap lg:justify-end">
+            <Button onClick={handleSync} disabled={syncing} size="sm" className="w-full lg:w-auto">
               {syncing ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
               {t.instagram.sync}
             </Button>
-            <Button onClick={handleConnect} disabled={connecting} variant="secondary" size="sm">
+            <Button onClick={handleConnect} disabled={connecting} variant="secondary" size="sm" className="w-full lg:w-auto">
               {connecting ? <Loader2 className="h-4 w-4 animate-spin" /> : <InstagramBrandIcon className="h-4 w-4" />}
               {t.instagram.switchAccount}
             </Button>
-            <Link href="/instagram-data">
-              <Button variant="secondary" size="sm">{t.instagramData.title}</Button>
+            <Link href="/instagram-data" className="w-full lg:w-auto">
+              <Button variant="secondary" size="sm" className="w-full lg:w-auto">{t.instagramData.title}</Button>
             </Link>
-            <Link href="/growth-tracker">
-              <Button variant="secondary" size="sm">{t.instagram.viewGrowth}</Button>
+            <Link href="/growth-tracker" className="w-full lg:w-auto">
+              <Button variant="secondary" size="sm" className="w-full lg:w-auto">{t.instagram.viewGrowth}</Button>
             </Link>
+            <Button onClick={handleDisconnect} disabled={disconnecting} variant="danger" size="sm" className="w-full lg:w-auto">
+              {disconnecting ? <Loader2 className="h-4 w-4 animate-spin" /> : <LogOut className="h-4 w-4" />}
+              {t.instagram.logout}
+            </Button>
           </div>
         </div>
         {toast && <p className="mt-3 text-sm text-lime">{toast}</p>}
@@ -140,8 +160,8 @@ export function InstagramConnectBanner() {
     <Card className="border-amber-500/20 bg-amber-500/5">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-start gap-4">
-          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-white/10">
-            <InstagramBrandIcon className="h-7 w-7" />
+          <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-xl">
+            <InstagramBrandIcon className="h-11 w-11" />
           </div>
           <div>
             <p className="font-semibold">{t.instagram.connectTitle}</p>

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { getAccessTokenFromRequest, getUserFromAccessToken } from "@/lib/auth-server";
 import { openai, isOpenAIConfigured } from "@/lib/openai";
 import type { ContentGoal, ContentTone } from "@/types";
 
@@ -8,6 +9,12 @@ export async function POST(request: Request) {
       { error: "OpenAI API key not configured. Add OPENAI_API_KEY to .env.local" },
       { status: 503 }
     );
+  }
+
+  const token = getAccessTokenFromRequest(request);
+  const user = await getUserFromAccessToken(token);
+  if (!user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   const body = await request.json();

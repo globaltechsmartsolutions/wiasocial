@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { getAccessTokenFromRequest, getUserFromAccessToken } from "@/lib/auth-server";
 import { openai, isOpenAIConfigured } from "@/lib/openai";
 
 type AIAction =
@@ -44,6 +45,12 @@ export async function POST(request: Request) {
   }
 
   try {
+    const token = getAccessTokenFromRequest(request);
+    const user = await getUserFromAccessToken(token);
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const body = await request.json();
     const { action, locale = "es", ...params } = body as { action: AIAction; locale?: string; [key: string]: unknown };
 
