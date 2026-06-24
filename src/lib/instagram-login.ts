@@ -5,11 +5,11 @@ import { getAppUrl, getInstagramRedirectUri } from "@/lib/meta";
 const IG_GRAPH = "https://graph.instagram.com/v21.0";
 
 export function getInstagramAppId(): string {
-  return process.env.INSTAGRAM_APP_ID ?? process.env.META_APP_ID ?? "";
+  return process.env.INSTAGRAM_APP_ID ?? "";
 }
 
 export function getInstagramAppSecret(): string {
-  return process.env.INSTAGRAM_APP_SECRET ?? process.env.META_APP_SECRET ?? "";
+  return process.env.INSTAGRAM_APP_SECRET ?? "";
 }
 
 export function isInstagramLoginConfigured(): boolean {

@@ -82,7 +82,7 @@ NEXT_PUBLIC_APP_URL=https://wiasocial-production.up.railway.app
 SUPABASE_SERVICE_ROLE_KEY=tu_service_role_key
 ```
 
-También válido (fallback): `META_APP_ID` / `META_APP_SECRET` / `NEXT_PUBLIC_META_APP_ID`
+No uses `META_APP_ID` / `NEXT_PUBLIC_META_APP_ID` para este flujo. Deben ser las credenciales específicas de **Instagram API with Instagram login**.
 
 ---
 

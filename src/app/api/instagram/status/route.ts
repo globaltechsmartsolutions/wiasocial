@@ -13,7 +13,7 @@ export async function GET() {
     message: serverOk && clientOk
       ? "Instagram listo para conectar"
       : !clientOk
-        ? "Falta NEXT_PUBLIC_INSTAGRAM_APP_ID en Railway"
-        : "Faltan INSTAGRAM_APP_ID e INSTAGRAM_APP_SECRET en Railway",
+        ? "Falta NEXT_PUBLIC_INSTAGRAM_APP_ID específico de Instagram Login en Railway"
+        : "Faltan INSTAGRAM_APP_ID e INSTAGRAM_APP_SECRET específicos de Instagram Login en Railway",
   });
 }
