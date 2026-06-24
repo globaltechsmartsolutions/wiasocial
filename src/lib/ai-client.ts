@@ -1,4 +1,5 @@
 import { getSupabase } from "@/lib/supabase";
+import type { AudienceFinderReport } from "@/types/audience-finder";
 import type { GrowthRadarReport } from "@/types/growth-radar";
 import type { InstagramFunnelPlan, MonthlyMarketingPlan } from "@/types/marketing-os";
 
@@ -73,6 +74,17 @@ export interface MarketingPlanResponse {
 export interface FunnelBuilderResponse {
   funnel: InstagramFunnelPlan | null;
   id?: string | null;
+  createdAt?: string | null;
+  updatedAt?: string | null;
+  setupRequired?: boolean;
+  message?: string;
+  persistenceWarning?: string | null;
+}
+
+export interface AudienceFinderResponse {
+  id: string | null;
+  report: AudienceFinderReport | null;
+  input?: Record<string, unknown> | null;
   createdAt?: string | null;
   updatedAt?: string | null;
   setupRequired?: boolean;
@@ -233,4 +245,39 @@ export async function generateFunnel(
   const data = await res.json();
   if (!res.ok) throw new Error(data.error || "Error al generar funnel");
   return data as FunnelBuilderResponse;
+}
+
+export async function fetchAudienceFinder() {
+  const token = await getToken();
+  const res = await fetch("/api/audience-finder", {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || "Error al cargar Audience Finder");
+  return data as AudienceFinderResponse;
+}
+
+export async function generateAudienceFinder(
+  payload: {
+    niche: string;
+    goal: string;
+    similarAccounts: string;
+    keywords: string;
+    observedUsers: string;
+    notes: string;
+  },
+  locale = "es"
+) {
+  const token = await getToken();
+  const res = await fetch("/api/audience-finder", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ ...payload, locale }),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || "Error al generar Audience Finder");
+  return data as AudienceFinderResponse;
 }
