@@ -1,6 +1,6 @@
 import "server-only";
 import crypto from "crypto";
-import { getAppUrl, getInstagramRedirectUri } from "@/lib/meta";
+import { getInstagramRedirectUri } from "@/lib/meta";
 
 const IG_GRAPH = "https://graph.instagram.com/v21.0";
 

@@ -96,7 +96,7 @@ export async function POST(request: Request) {
   const token = getAccessTokenFromRequest(request);
   const user = await getUserFromAccessToken(token);
   if (!user || !token) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  const limited = enforceUserRateLimit(request, user.id, "audience-finder", 15, 60 * 60 * 1000);
+  const limited = await enforceUserRateLimit(request, user.id, "audience-finder", 15, 60 * 60 * 1000);
   if (limited) return limited;
 
   const payload = (await request.json().catch(() => ({}))) as AudienceFinderPayload;

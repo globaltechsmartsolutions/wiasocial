@@ -33,7 +33,7 @@ export async function requireAuth(request: Request): Promise<{ user: User; token
   return { user, token };
 }
 
-export function enforceUserRateLimit(
+export async function enforceUserRateLimit(
   request: Request,
   userId: string,
   scope: string,
@@ -41,7 +41,7 @@ export function enforceUserRateLimit(
   windowMs = 60 * 60 * 1000
 ) {
   const ip = getClientIp(request);
-  const result = checkRateLimit({ key: `${scope}:${userId}:${ip}`, limit, windowMs });
+  const result = await checkRateLimit({ key: `${scope}:${userId}:${ip}`, limit, windowMs });
   if (!result.ok) return rateLimitResponse(result.retryAfter);
   return null;
 }

@@ -9,7 +9,7 @@ export async function POST(request: Request) {
   if (!user || !token) {
     return NextResponse.json({ error: "Sesión inválida" }, { status: 401 });
   }
-  const limited = enforceUserRateLimit(request, user.id, "instagram-sync", 4, 60 * 60 * 1000);
+  const limited = await enforceUserRateLimit(request, user.id, "instagram-sync", 4, 60 * 60 * 1000);
   if (limited) return limited;
 
   const sb = getSupabaseForUser(token);

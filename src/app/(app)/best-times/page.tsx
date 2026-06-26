@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Clock, Loader2 } from "lucide-react";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Card, CardHeader } from "@/components/ui/Card";
@@ -17,7 +17,7 @@ export default function BestTimesPage() {
   const [tip, setTip] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const analyze = async () => {
+  const analyze = useCallback(async () => {
     if (!user) return;
     setLoading(true);
     try {
@@ -37,9 +37,9 @@ export default function BestTimesPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user]);
 
-  useEffect(() => { analyze(); }, [user]);
+  useEffect(() => { analyze(); }, [analyze]);
 
   return (
     <div>

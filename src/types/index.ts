@@ -16,15 +16,6 @@ export interface Lead {
   createdAt: string;
 }
 
-export interface ContentIdea {
-  id: string;
-  title: string;
-  hook: string;
-  niche: string;
-  goal: ContentGoal;
-  createdAt: string;
-}
-
 export interface PostPerformance {
   id: string;
   title: string;
@@ -105,26 +96,6 @@ export interface CalendarItem {
   time: string;
 }
 
-export interface HashtagCluster {
-  tier: "large" | "medium" | "small";
-  hashtags: { tag: string; posts: string; competition: string }[];
-}
-
-export interface ProfileAuditItem {
-  id: string;
-  category: string;
-  score: number;
-  status: "good" | "warning" | "bad";
-  tip: string;
-}
-
-export interface BestTimeSlot {
-  day: string;
-  time: string;
-  score: number;
-  reason: string;
-}
-
 export interface ViralFormat {
   id: string;
   name: string;
@@ -134,41 +105,10 @@ export interface ViralFormat {
   avgViews: string;
 }
 
-export interface FollowerSnapshot {
-  date: string;
-  followers: number;
-  gained: number;
-  topPost?: string;
-}
-
-export interface Competitor {
-  id: string;
-  username: string;
-  followers: string;
-  niche: string;
-  topPosts: { title: string; views: string; format: string; hook: string }[];
-  patterns: string[];
-}
-
 export interface ContentSeriesPiece {
   day: number;
   type: "reel" | "carousel" | "story" | "post";
   title: string;
   hook: string;
   description: string;
-}
-
-export interface DailyEngagementTask {
-  id: string;
-  username: string;
-  action: string;
-  commentTemplate: string;
-  completed: boolean;
-}
-
-export interface HookAnalysis {
-  score: number;
-  strengths: string[];
-  weaknesses: string[];
-  variants: string[];
 }

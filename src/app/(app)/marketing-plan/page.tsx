@@ -53,7 +53,6 @@ export default function MarketingPlanPage() {
   useEffect(() => {
     if (!user) return;
     load();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, locale]);
 
   if (loading) {

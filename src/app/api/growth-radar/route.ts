@@ -63,7 +63,7 @@ export async function POST(request: Request) {
   const token = getAccessTokenFromRequest(request);
   const user = await getUserFromAccessToken(token);
   if (!user || !token) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  const limited = enforceUserRateLimit(request, user.id, "growth-radar", 10, 60 * 60 * 1000);
+  const limited = await enforceUserRateLimit(request, user.id, "growth-radar", 10, 60 * 60 * 1000);
   if (limited) return limited;
 
   const { locale = "es", force = false } = await request.json().catch(() => ({ locale: "es", force: false }));

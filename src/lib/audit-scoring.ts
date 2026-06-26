@@ -4,7 +4,6 @@ import type {
   AuditProfileInput,
   AuditScoringResult,
   AuditSubscores,
-  InstagramAuditRecord,
 } from "@/types/audit";
 
 function clamp(n: number) {

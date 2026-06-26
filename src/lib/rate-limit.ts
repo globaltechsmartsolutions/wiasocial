@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { getSupabaseAdmin } from "@/lib/supabase-admin";
 
 interface Bucket {
   count: number;
@@ -11,9 +12,53 @@ interface RateLimitOptions {
   windowMs: number;
 }
 
+interface RateLimitResult {
+  ok: boolean;
+  remaining: number;
+  retryAfter: number;
+}
+
+interface SupabaseRateLimitRow {
+  ok: boolean;
+  remaining: number;
+  retry_after: number;
+}
+
 const buckets = new Map<string, Bucket>();
 
-export function checkRateLimit({ key, limit, windowMs }: RateLimitOptions) {
+export async function checkRateLimit(options: RateLimitOptions): Promise<RateLimitResult> {
+  const sharedResult = await checkSharedRateLimit(options);
+  return sharedResult ?? checkMemoryRateLimit(options);
+}
+
+async function checkSharedRateLimit({ key, limit, windowMs }: RateLimitOptions): Promise<RateLimitResult | null> {
+  try {
+    const { data, error } = await getSupabaseAdmin()
+      .rpc("check_rate_limit", {
+        p_key: key,
+        p_limit: limit,
+        p_window_ms: windowMs,
+      });
+
+    if (error) return null;
+
+    const row = Array.isArray(data)
+      ? (data[0] as SupabaseRateLimitRow | undefined)
+      : (data as SupabaseRateLimitRow | null);
+
+    if (!row) return null;
+
+    return {
+      ok: Boolean(row.ok),
+      remaining: Number(row.remaining) || 0,
+      retryAfter: Number(row.retry_after) || 0,
+    };
+  } catch {
+    return null;
+  }
+}
+
+function checkMemoryRateLimit({ key, limit, windowMs }: RateLimitOptions): RateLimitResult {
   const now = Date.now();
   const current = buckets.get(key);
 

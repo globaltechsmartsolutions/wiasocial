@@ -17,7 +17,7 @@ export async function POST(request: Request) {
   const auth = await requireAuth(request);
   if (auth instanceof Response) return auth;
 
-  const limited = enforceUserRateLimit(request, auth.user.id, "instagram-auth", 10, 60 * 60 * 1000);
+  const limited = await enforceUserRateLimit(request, auth.user.id, "instagram-auth", 10, 60 * 60 * 1000);
   if (limited) return limited;
 
   const state = signInstagramOAuthState(auth.user.id);

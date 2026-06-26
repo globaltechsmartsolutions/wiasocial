@@ -53,6 +53,12 @@ OPENAI_API_KEY=your_openai_api_key
 npm run dev
 ```
 
+Or use the cross-platform helper, which installs dependencies if needed:
+
+```bash
+npm run dev:local
+```
+
 Open [http://localhost:3000](http://localhost:3000) in your browser.
 
 ## Project Structure

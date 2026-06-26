@@ -12,7 +12,7 @@ export async function POST(request: Request) {
   const token = getAccessTokenFromRequest(request);
   const user = await getUserFromAccessToken(token);
   if (!user || !token) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  const limited = enforceUserRateLimit(request, user.id, "lead-iq", 40, 60 * 60 * 1000);
+  const limited = await enforceUserRateLimit(request, user.id, "lead-iq", 40, 60 * 60 * 1000);
   if (limited) return limited;
 
   const { lead, locale = "es" } = await request.json();

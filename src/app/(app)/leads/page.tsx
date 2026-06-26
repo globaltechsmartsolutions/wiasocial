@@ -9,7 +9,7 @@ import { Select } from "@/components/ui/Select";
 import { Textarea } from "@/components/ui/Textarea";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
-import { statusColors } from "@/data/dummy";
+import { leadStatusColors } from "@/constants/lead-status";
 import { formatDate } from "@/lib/utils";
 import { useTranslation } from "@/lib/i18n/LanguageProvider";
 import { useAuth } from "@/contexts/AuthContext";
@@ -165,7 +165,7 @@ export default function LeadsPage() {
                 <div>
                   <div className="flex items-center gap-2">
                     <p className="font-medium text-foreground">{lead.username}</p>
-                    <Badge className={statusColors[lead.status]}>{t.status[lead.status]}</Badge>
+                    <Badge className={leadStatusColors[lead.status]}>{t.status[lead.status]}</Badge>
                   </div>
                   <p className="text-sm text-muted">{lead.fullName} · {lead.niche}</p>
                   {lead.notes && <p className="mt-1 text-sm text-muted flex items-center gap-1"><MessageSquare className="h-3 w-3" />{lead.notes}</p>}

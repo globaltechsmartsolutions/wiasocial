@@ -56,7 +56,7 @@ export async function POST(request: Request) {
   if (!user || !token) {
     return NextResponse.json({ error: "Sesión inválida" }, { status: 401 });
   }
-  const limited = enforceUserRateLimit(request, user.id, "instagram-audit", 20, 60 * 60 * 1000);
+  const limited = await enforceUserRateLimit(request, user.id, "instagram-audit", 20, 60 * 60 * 1000);
   if (limited) return limited;
 
   try {

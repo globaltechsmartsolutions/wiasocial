@@ -36,11 +36,12 @@ OPENAI_API_KEY=your_openai_api_key
 4. Guarda el archivo (Cmd+S)
 
 ### Paso 5: Arranca la app
-1. Abre **Terminal** en tu Mac
+1. Abre **Terminal** en Mac o **PowerShell** en Windows
 2. Pega esto y pulsa Enter:
 
 ```bash
-cd ~/Desktop/wia-instagram-growth-os && ./start-dev.sh
+cd RUTA-DE-TU-PROYECTO
+npm run dev
 ```
 
 3. Abre el navegador en: **http://localhost:3000**

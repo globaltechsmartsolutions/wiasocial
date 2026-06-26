@@ -23,7 +23,13 @@ OPENAI_API_KEY=sk-...
 ## 4. Arrancar
 
 ```bash
-./start-dev.sh
+npm run dev
+```
+
+Alternativa compatible con Windows y macOS, instalando dependencias si faltan:
+
+```bash
+npm run dev:local
 ```
 
 Abre http://localhost:3000 → crea tu cuenta → empieza a usar datos reales.

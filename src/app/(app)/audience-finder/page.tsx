@@ -82,7 +82,6 @@ export default function AudienceFinderPage() {
       }
     }
     load();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
   const generate = async () => {

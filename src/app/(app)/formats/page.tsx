@@ -6,7 +6,7 @@ import { PageHeader } from "@/components/ui/PageHeader";
 import { Card, CardHeader } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
-import { dummyViralFormats } from "@/data/growth";
+import { viralFormats } from "@/constants/viral-formats";
 import { useTranslation } from "@/lib/i18n/LanguageProvider";
 import { useAuth } from "@/contexts/AuthContext";
 import { fetchSettings, saveGeneratedContent } from "@/lib/db";
@@ -42,7 +42,7 @@ export default function FormatsPage() {
     <div>
       <PageHeader title={t.formats.title} description={t.formats.description} />
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {dummyViralFormats.map((format) => (
+        {viralFormats.map((format) => (
           <Card key={format.id} className="flex flex-col">
             <CardHeader title={format.name} action={<Badge className="bg-lime/20 text-lime border-lime/30">{format.avgViews}</Badge>} />
             <p className="text-sm text-muted mb-3">{format.description}</p>

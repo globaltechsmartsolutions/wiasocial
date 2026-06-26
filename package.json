@@ -7,13 +7,15 @@
   },
   "scripts": {
     "dev": "next dev",
+    "dev:local": "node scripts/start-dev.mjs",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint",
+    "lint": "eslint . --max-warnings=0",
     "migrate:instagram": "node --env-file=.env.local scripts/migrate-instagram.mjs",
     "migrate:growth-radar": "node --env-file=.env.local scripts/migrate-growth-radar.mjs",
     "migrate:marketing-os": "node --env-file=.env.local scripts/migrate-marketing-os.mjs",
     "migrate:audience-finder": "node --env-file=.env.local scripts/migrate-audience-finder.mjs",
+    "migrate:rate-limit": "node --env-file=.env.local scripts/migrate-rate-limit.mjs",
     "migrate:persistence-fixes": "node --env-file=.env.local scripts/migrate-persistence-fixes.mjs"
   },
   "dependencies": {

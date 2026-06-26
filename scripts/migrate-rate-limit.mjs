@@ -4,9 +4,9 @@ async function main() {
   const client = await connectSupabase();
 
   try {
-    await runSqlFiles(client, ["supabase/marketing-os-migration.sql"]);
+    await runSqlFiles(client, ["supabase/rate-limit-migration.sql"]);
 
-    const { missing } = await verifyTables(client, ["monthly_marketing_plans", "instagram_funnels"]);
+    const { missing } = await verifyTables(client, ["rate_limits"]);
     if (missing.length > 0) {
       throw new Error(`No se pudo verificar: ${missing.join(", ")}`);
     }
@@ -14,7 +14,7 @@ async function main() {
     await client.end();
   }
 
-  console.log("Migracion Marketing OS completada.");
+  console.log("Migracion Rate Limit completada.");
 }
 
 main().catch((err) => {

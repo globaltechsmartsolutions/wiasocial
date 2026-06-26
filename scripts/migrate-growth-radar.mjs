@@ -1,38 +1,17 @@
-import { readFileSync } from "fs";
-import { join } from "path";
-import pg from "pg";
-
-const projectRef = "birkkohkenkxcpuhhyih";
-const password = process.env.SUPABASE_DB_PASSWORD?.trim();
-const poolerHost = process.env.SUPABASE_POOLER_HOST ?? "aws-1-ap-northeast-1.pooler.supabase.com";
-const poolerPort = process.env.SUPABASE_POOLER_PORT ?? "6543";
-
-if (!password) {
-  console.error("Falta SUPABASE_DB_PASSWORD en .env.local");
-  process.exit(1);
-}
-
-const connectionString = `postgresql://postgres.${projectRef}:${encodeURIComponent(password)}@${poolerHost}:${poolerPort}/postgres`;
+import { connectSupabase, runSqlFiles, verifyTables } from "./lib/supabase-migration.mjs";
 
 async function main() {
-  const client = new pg.Client({ connectionString, ssl: { rejectUnauthorized: false } });
-  await client.connect();
+  const client = await connectSupabase();
 
-  const sql = readFileSync(join(process.cwd(), "supabase/growth-radar-migration.sql"), "utf8");
-  console.log("Ejecutando supabase/growth-radar-migration.sql...");
-  await client.query(sql);
+  try {
+    await runSqlFiles(client, ["supabase/growth-radar-migration.sql"]);
 
-  const verify = await client.query(`
-    SELECT table_name FROM information_schema.tables
-    WHERE table_schema = 'public'
-    AND table_name = 'growth_radar_reports'
-  `);
-
-  await client.end();
-
-  if (verify.rows.length !== 1) {
-    console.error("No se pudo verificar growth_radar_reports.");
-    process.exit(1);
+    const { missing } = await verifyTables(client, ["growth_radar_reports"]);
+    if (missing.length > 0) {
+      throw new Error(`No se pudo verificar: ${missing.join(", ")}`);
+    }
+  } finally {
+    await client.end();
   }
 
   console.log("Migracion Growth Radar completada.");
