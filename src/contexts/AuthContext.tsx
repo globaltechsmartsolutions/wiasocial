@@ -36,21 +36,44 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return;
     }
 
-    const sb = getSupabase();
+    let active = true;
+    let subscription: { unsubscribe: () => void } | null = null;
+    const timeout = window.setTimeout(() => {
+      if (active) setLoading(false);
+    }, 8000);
 
-    sb.auth.getSession().then(({ data: { session: s } }) => {
-      setSession(s);
-      setUser(s?.user ?? null);
+    try {
+      const sb = getSupabase();
+
+      sb.auth.getSession()
+        .then(({ data: { session: s } }) => {
+          if (!active) return;
+          setSession(s);
+          setUser(s?.user ?? null);
+          setLoading(false);
+        })
+        .catch(() => {
+          if (active) setLoading(false);
+        })
+        .finally(() => window.clearTimeout(timeout));
+
+      const authState = sb.auth.onAuthStateChange((_event, s) => {
+        if (!active) return;
+        setSession(s);
+        setUser(s?.user ?? null);
+        setLoading(false);
+      });
+      subscription = authState.data.subscription;
+    } catch {
       setLoading(false);
-    });
+      window.clearTimeout(timeout);
+    }
 
-    const { data: { subscription } } = sb.auth.onAuthStateChange((_event, s) => {
-      setSession(s);
-      setUser(s?.user ?? null);
-      setLoading(false);
-    });
-
-    return () => subscription.unsubscribe();
+    return () => {
+      active = false;
+      window.clearTimeout(timeout);
+      subscription?.unsubscribe();
+    };
   }, [configured]);
 
   const signIn = useCallback(async (email: string, password: string) => {

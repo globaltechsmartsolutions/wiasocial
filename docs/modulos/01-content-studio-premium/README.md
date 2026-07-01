@@ -127,6 +127,9 @@ Mejora aplicada:
 - `visualCue` queda como metadato de diseño, no como texto dentro del PNG.
 - El PNG público muestra contenido publicable: titular, apoyo, etiqueta de plantilla, progreso y una barra de "idea clave" o "siguiente paso".
 - La preview ya no trata una slide como si fuese más importante por defecto; permite seleccionar y revisar el carrusel con más orden.
+- `/content-generator` ya incluye una mesa de revisión del carrusel: slide activa grande, miniaturas visuales, copy de la slide, caption, CTA y acciones de descargar/publicar.
+- La slide activa puede editarse antes de exportar: titular, apoyo y nota visual. El PNG se recalcula con esos cambios.
+- El `AuthGuard` ya no debería dejar la app en un spinner infinito si la sesión tarda o falla.
 - La API de preview usa un contrato más estricto para Gemini y devuelve errores visibles si el JSON llega incompleto.
 - El usuario ya no debería ver "generado con Gemini" sin una señal clara de qué se ha generado.
 
@@ -224,6 +227,7 @@ Primer MVP implementado:
 - revisión crítica
 - export de carrusel a PNG
 - previsualización del PNG
+- edición de la slide activa antes de exportar
 - publicación directa en Instagram
 - ajuste de titulares largos en el render PNG
 - layout y acento visual según plantilla elegida
@@ -318,13 +322,12 @@ El siguiente paso del módulo debe ser mejorar la calidad visual y la inteligenc
 
 Orden recomendado:
 
-1. Llevar la experiencia visual de la preview a la pantalla real `/content-generator`.
-2. Subir la calidad gráfica de cada layout: tipografía, ritmo, espacios, fondos y elementos de marca.
-3. Crear variantes visuales por plantilla, no solo una versión.
-4. Hacer que la IA extraiga un concepto corto de portada desde cualquier topic con más precisión.
-5. Permitir regenerar una slide concreta.
-6. Medir cuántos carruseles se generan, editan, copian, descargan y publican por `templateId`.
-7. Aprender qué plantillas generan más guardados, leads y publicaciones.
+1. Subir la calidad gráfica de cada layout: tipografía, ritmo, espacios, fondos y elementos de marca.
+2. Crear variantes visuales por plantilla, no solo una versión.
+3. Hacer que la IA extraiga un concepto corto de portada desde cualquier topic con más precisión.
+4. Permitir regenerar una slide concreta.
+5. Medir cuántos carruseles se generan, editan, copian, descargan y publican por `templateId`.
+6. Aprender qué plantillas generan más guardados, leads y publicaciones.
 
 ## Criterio de terminado del módulo
 
@@ -334,6 +337,7 @@ Content Studio premium estará realmente terminado cuando:
 - pueda guardar la pieza
 - pueda copiar el pack
 - pueda ver carrusel y stories estructurados
+- pueda editar el texto de una slide antes de exportar
 - pueda exportar al menos un carrusel en PNG
 - pueda intentar publicación directa si Instagram está conectado con permisos correctos
 - pueda partir de cualquier topic sin romper el diseño ni sonar genérico

@@ -106,6 +106,15 @@ const contentLabels = {
     published: "Publicado en Instagram",
     publishHelp: "Publica el carrusel generado usando la conexión oficial de Instagram.",
     preview: "Vista previa PNG",
+    carouselStudio: "Mesa de revisión del carrusel",
+    previewHelp: "Revisa cada slide como PNG final antes de descargar o publicar.",
+    selectedSlide: "Slide activa",
+    slideCopy: "Copy de la slide",
+    headlineLabel: "Titular",
+    supportLabel: "Apoyo",
+    visualCueLabel: "Nota visual",
+    captionLabel: "Caption",
+    ctaLabel: "CTA",
     nichePlaceholder: "ej. Clínica estética premium",
     audiencePlaceholder: "ej. Mujeres de 35-55 que quieren verse mejor sin cambios artificiales",
     offerPlaceholder: "ej. Diagnóstico facial + tratamiento personalizado",
@@ -155,6 +164,15 @@ const contentLabels = {
     published: "Published to Instagram",
     publishHelp: "Publish the generated carousel using the official Instagram connection.",
     preview: "PNG preview",
+    carouselStudio: "Carousel review desk",
+    previewHelp: "Review each slide as the final PNG before downloading or publishing.",
+    selectedSlide: "Active slide",
+    slideCopy: "Slide copy",
+    headlineLabel: "Headline",
+    supportLabel: "Support",
+    visualCueLabel: "Visual note",
+    captionLabel: "Caption",
+    ctaLabel: "CTA",
     nichePlaceholder: "e.g. Premium aesthetics clinic",
     audiencePlaceholder: "e.g. Women 35-55 who want to look fresher without obvious changes",
     offerPlaceholder: "e.g. Facial diagnosis + personalized treatment",
@@ -342,7 +360,7 @@ export default function ContentGeneratorPage() {
         </Card>
 
         {output ? (
-          <PremiumOutput output={output} labels={labels} copyLabel={t.common.copy} />
+          <PremiumOutput output={output} labels={labels} copyLabel={t.common.copy} onChangeOutput={setOutput} />
         ) : (
           <Card className="flex min-h-[520px] items-center justify-center">
             <div className="text-center">
@@ -398,10 +416,12 @@ function PremiumOutput({
   output,
   labels,
   copyLabel,
+  onChangeOutput,
 }: {
   output: PremiumGeneratedContent;
   labels: typeof contentLabels.es;
   copyLabel: string;
+  onChangeOutput: (output: PremiumGeneratedContent) => void;
 }) {
   const [publishing, setPublishing] = useState(false);
   const [publishMessage, setPublishMessage] = useState("");
@@ -426,6 +446,15 @@ function PremiumOutput({
     } finally {
       setPublishing(false);
     }
+  };
+
+  const handleUpdateSlide = (index: number, patch: Partial<PremiumCarouselSlide>) => {
+    onChangeOutput({
+      ...output,
+      carousel: output.carousel.map((slide, slideIndex) => (
+        slideIndex === index ? { ...slide, ...patch } : slide
+      )),
+    });
   };
 
   return (
@@ -490,12 +519,7 @@ function PremiumOutput({
         <p className="mt-2 text-xs text-muted">{labels.publishHelp}</p>
         {publishMessage && <p className="mt-3 text-sm text-lime">{publishMessage}</p>}
         {publishError && <p className="mt-3 text-sm text-red-400">{publishError}</p>}
-        <CarouselPngPreview output={output} title={labels.preview} />
-        <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-          {output.carousel.map((slide) => (
-            <CarouselSlideCard key={slide.slide} slide={slide} />
-          ))}
-        </div>
+        <CarouselStudioPreview output={output} labels={labels} onUpdateSlide={handleUpdateSlide} />
       </section>
 
       <section className="grid gap-5 lg:grid-cols-2">
@@ -599,46 +623,117 @@ function InfoTile({ icon, label, value }: { icon: React.ReactNode; label: string
   );
 }
 
-function CarouselPngPreview({ output, title }: { output: PremiumGeneratedContent; title: string }) {
+function CarouselStudioPreview({
+  output,
+  labels,
+  onUpdateSlide,
+}: {
+  output: PremiumGeneratedContent;
+  labels: typeof contentLabels.es;
+  onUpdateSlide: (index: number, patch: Partial<PremiumCarouselSlide>) => void;
+}) {
   const [selected, setSelected] = useState(0);
-  const [previewUrl, setPreviewUrl] = useState("");
+  const [previewUrls, setPreviewUrls] = useState<string[]>([]);
 
   useEffect(() => {
-    const slide = output.carousel[selected] ?? output.carousel[0];
-    if (!slide) return;
-    const canvas = renderCarouselSlide(output, slide, selected);
-    setPreviewUrl(canvas.toDataURL("image/png"));
-  }, [output, selected]);
+    const urls = output.carousel.map((slide, index) => renderCarouselSlide(output, slide, index).toDataURL("image/png"));
+    setPreviewUrls(urls);
+    setSelected((current) => Math.min(current, Math.max(output.carousel.length - 1, 0)));
+  }, [output]);
 
-  if (!previewUrl) return null;
+  const activeSlide = output.carousel[selected] ?? output.carousel[0];
+  const activePreview = previewUrls[selected] ?? previewUrls[0];
+
+  if (!activeSlide || !activePreview) return null;
 
   return (
-    <div className="mt-4 grid gap-4 lg:grid-cols-[220px_1fr]">
-      <div className="overflow-hidden rounded-lg border border-border bg-background">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={previewUrl} alt={title} className="aspect-[4/5] w-full object-cover" />
-      </div>
-      <div className="flex flex-col justify-between rounded-lg border border-border bg-surface-elevated p-4">
+    <div className="mt-5 rounded-xl border border-lime/20 bg-background/60 p-4">
+      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-wider text-lime">{title}</p>
-          <p className="mt-2 text-sm text-muted">
-            Esto es el PNG que se descarga y se envía a Instagram, con texto renderizado por WIASocial.
-          </p>
+          <p className="text-sm font-semibold text-foreground">{labels.carouselStudio}</p>
+          <p className="mt-1 text-xs text-muted">{labels.previewHelp}</p>
         </div>
-        <div className="mt-4 flex flex-wrap gap-2">
-          {output.carousel.map((slide, index) => (
-            <button
-              key={slide.slide}
-              onClick={() => setSelected(index)}
-              className={`rounded-full border px-3 py-1 text-xs transition-colors ${
-                selected === index
-                  ? "border-lime bg-lime text-black"
-                  : "border-border bg-surface text-muted hover:border-lime/40 hover:text-foreground"
-              }`}
-            >
-              {slide.slide}
-            </button>
-          ))}
+        <div className="rounded-full border border-lime/30 bg-lime/10 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-lime">
+          {labels.selectedSlide}: {activeSlide.slide}/{output.carousel.length}
+        </div>
+      </div>
+
+      <div className="grid gap-5 xl:grid-cols-[minmax(320px,520px)_1fr]">
+        <div className="mx-auto w-full max-w-[520px]">
+          <div className="overflow-hidden rounded-xl border border-lime/30 bg-black p-3 shadow-2xl shadow-black/40">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={activePreview} alt={`${labels.preview} ${activeSlide.slide}`} className="aspect-[4/5] w-full rounded-lg object-cover" />
+          </div>
+        </div>
+
+        <div className="flex min-w-0 flex-col gap-4">
+          <div className="rounded-lg border border-border bg-surface-elevated p-4">
+            <div className="mb-3 flex items-center justify-between gap-3">
+              <p className="text-xs font-semibold uppercase tracking-wider text-lime">{labels.slideCopy}</p>
+              <span className="rounded-full bg-lime/10 px-2.5 py-1 text-xs font-medium text-lime">{activeSlide.type}</span>
+            </div>
+            <div className="space-y-3">
+              <Textarea
+                id={`slide-headline-${activeSlide.slide}`}
+                label={labels.headlineLabel}
+                value={activeSlide.headline}
+                onChange={(event) => onUpdateSlide(selected, { headline: event.target.value })}
+                rows={2}
+              />
+              <Textarea
+                id={`slide-support-${activeSlide.slide}`}
+                label={labels.supportLabel}
+                value={activeSlide.support}
+                onChange={(event) => onUpdateSlide(selected, { support: event.target.value })}
+                rows={3}
+              />
+              <Textarea
+                id={`slide-visual-${activeSlide.slide}`}
+                label={labels.visualCueLabel}
+                value={activeSlide.visualCue}
+                onChange={(event) => onUpdateSlide(selected, { visualCue: event.target.value })}
+                rows={2}
+              />
+            </div>
+          </div>
+
+          <div className="grid gap-3 md:grid-cols-2">
+            <div className="rounded-lg border border-border bg-surface-elevated p-4">
+              <p className="text-xs font-semibold uppercase tracking-wider text-lime">{labels.captionLabel}</p>
+              <p className="mt-2 max-h-36 overflow-auto text-sm leading-relaxed text-foreground">{output.primaryPiece.caption}</p>
+            </div>
+            <div className="rounded-lg border border-border bg-surface-elevated p-4">
+              <p className="text-xs font-semibold uppercase tracking-wider text-lime">{labels.ctaLabel}</p>
+              <p className="mt-2 text-sm leading-relaxed text-foreground">{output.primaryPiece.cta}</p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 xl:grid-cols-3 2xl:grid-cols-4">
+            {output.carousel.map((slide, index) => (
+              <button
+                key={slide.slide}
+                onClick={() => setSelected(index)}
+                className={`group rounded-lg border p-1.5 text-left transition-colors ${
+                  selected === index
+                    ? "border-lime bg-lime/10"
+                    : "border-border bg-surface-elevated hover:border-lime/40"
+                }`}
+              >
+                <div className="overflow-hidden rounded-md bg-black">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={previewUrls[index] ?? activePreview}
+                    alt={`${labels.preview} ${slide.slide}`}
+                    className="aspect-[4/5] w-full object-cover transition-transform group-hover:scale-[1.02]"
+                  />
+                </div>
+                <div className="mt-2 flex items-center justify-between gap-2 px-0.5">
+                  <span className="text-xs font-semibold text-foreground">Slide {slide.slide}</span>
+                  <span className="truncate text-[11px] text-muted">{slide.type}</span>
+                </div>
+              </button>
+            ))}
+          </div>
         </div>
       </div>
     </div>
@@ -662,22 +757,6 @@ function VariantCard({ variant }: { variant: PremiumContentVariant }) {
       <p className="mt-3 text-sm font-semibold text-foreground">{variant.hook}</p>
       <p className="mt-3 text-sm leading-relaxed text-foreground">{variant.caption}</p>
       <p className="mt-3 text-sm font-medium text-lime">{variant.cta}</p>
-    </div>
-  );
-}
-
-function CarouselSlideCard({ slide }: { slide: PremiumCarouselSlide }) {
-  return (
-    <div className="flex min-h-72 flex-col justify-between rounded-lg border border-border bg-surface-elevated p-4">
-      <div>
-        <div className="flex items-center justify-between gap-3 text-xs text-muted">
-          <span>Slide {slide.slide}</span>
-          <span className="rounded-full bg-lime/10 px-2 py-0.5 text-lime">{slide.type}</span>
-        </div>
-        <h3 className="mt-4 text-lg font-semibold leading-tight text-foreground">{slide.headline}</h3>
-        <p className="mt-3 text-sm leading-relaxed text-muted">{slide.support}</p>
-      </div>
-      <p className="mt-5 border-t border-border pt-3 text-xs text-muted">{slide.visualCue}</p>
     </div>
   );
 }
