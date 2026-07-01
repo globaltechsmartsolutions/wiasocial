@@ -16,7 +16,9 @@
     "migrate:marketing-os": "node --env-file=.env.local scripts/migrate-marketing-os.mjs",
     "migrate:audience-finder": "node --env-file=.env.local scripts/migrate-audience-finder.mjs",
     "migrate:rate-limit": "node --env-file=.env.local scripts/migrate-rate-limit.mjs",
-    "migrate:persistence-fixes": "node --env-file=.env.local scripts/migrate-persistence-fixes.mjs"
+    "migrate:persistence-fixes": "node --env-file=.env.local scripts/migrate-persistence-fixes.mjs",
+    "model:bakeoff": "node scripts/model-bakeoff.mjs",
+    "model:bakeoff:dry-run": "node scripts/model-bakeoff.mjs --dry-run"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.49.1",

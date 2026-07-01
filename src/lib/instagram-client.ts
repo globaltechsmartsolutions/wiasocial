@@ -116,6 +116,25 @@ export async function disconnectInstagram() {
   return data;
 }
 
+export async function publishInstagramCarousel(payload: {
+  caption: string;
+  slides: { slide: number; dataUrl: string }[];
+}) {
+  const token = await getSessionToken();
+  const res = await fetch("/api/instagram/publish", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(payload),
+  });
+
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || "Error al publicar en Instagram");
+  return data as { ok: boolean; instagramMediaId: string; slides: number };
+}
+
 export async function fetchInstagramConnection() {
   const { data: { session } } = await getSupabase().auth.getSession();
   if (!session?.user) return null;

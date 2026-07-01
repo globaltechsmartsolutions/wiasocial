@@ -47,6 +47,7 @@ export function verifyInstagramOAuthState(state: string): string | null {
 export function getInstagramLoginScopes(): string {
   return [
     "instagram_business_basic",
+    "instagram_business_content_publish",
     "instagram_business_manage_insights",
     "instagram_business_manage_comments",
   ].join(",");

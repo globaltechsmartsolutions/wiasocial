@@ -1,0 +1,1293 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Preview carrusel WIASocial</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      font-family: Inter, Arial, sans-serif;
+      background: #09090b;
+      color: #f8fafc;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background:
+        linear-gradient(180deg, rgba(163, 230, 53, 0.07), transparent 320px),
+        linear-gradient(90deg, rgba(56, 189, 248, 0.04), transparent 46%),
+        #09090b;
+    }
+
+    main {
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 24px;
+    }
+
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+      margin-bottom: 18px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(24px, 4vw, 30px);
+      letter-spacing: 0;
+    }
+
+    p {
+      margin: 8px 0 0;
+      max-width: 620px;
+      color: #a1a1aa;
+      line-height: 1.55;
+    }
+
+    .badge {
+      flex: 0 0 auto;
+      border: 1px solid rgba(163, 230, 53, 0.4);
+      border-radius: 999px;
+      padding: 8px 13px;
+      color: #bef264;
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .controls {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 190px 140px 140px;
+      gap: 12px;
+      margin: 0 0 14px;
+      padding: 14px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 10px;
+      background:
+        linear-gradient(135deg, rgba(163, 230, 53, 0.08), rgba(56, 189, 248, 0.05) 46%, rgba(20, 20, 22, 0.92)),
+        rgba(20, 20, 22, 0.88);
+    }
+
+    textarea,
+    select {
+      width: 100%;
+      min-height: 56px;
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      border-radius: 8px;
+      background: #09090b;
+      color: #f8fafc;
+      font: inherit;
+      line-height: 1.45;
+      padding: 12px;
+      outline: none;
+    }
+
+    textarea {
+      resize: vertical;
+    }
+
+    select {
+      cursor: pointer;
+    }
+
+    textarea:focus,
+    select:focus {
+      border-color: rgba(163, 230, 53, 0.7);
+      box-shadow: 0 0 0 3px rgba(163, 230, 53, 0.12);
+    }
+
+    button {
+      align-self: stretch;
+      min-width: 138px;
+      border: 0;
+      border-radius: 8px;
+      background: #a3e635;
+      color: #050505;
+      cursor: pointer;
+      font: inherit;
+      font-weight: 800;
+      padding: 0 18px;
+    }
+
+    button.secondary {
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      background: rgba(255, 255, 255, 0.07);
+      color: #f8fafc;
+    }
+
+    button[disabled] {
+      cursor: wait;
+      opacity: 0.72;
+    }
+
+    .examples {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin: 0 0 18px;
+    }
+
+    .examples button {
+      min-width: 0;
+      align-self: auto;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      background: rgba(255, 255, 255, 0.05);
+      color: #d4d4d8;
+      font-size: 13px;
+      font-weight: 700;
+      padding: 8px 10px;
+    }
+
+    .route-card {
+      min-width: 0;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 10px;
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0.015)),
+        rgba(20, 20, 22, 0.92);
+      padding: 18px;
+      align-self: start;
+      position: sticky;
+      top: 16px;
+    }
+
+    .route-title {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 8px;
+    }
+
+    .route-title strong {
+      font-size: 18px;
+    }
+
+    .route-title span {
+      border-radius: 999px;
+      background: rgba(163, 230, 53, 0.12);
+      color: #bef264;
+      font-size: 12px;
+      font-weight: 800;
+      padding: 5px 9px;
+      text-transform: uppercase;
+    }
+
+    .pattern {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 7px;
+      margin-top: 12px;
+    }
+
+    .pattern span {
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 999px;
+      color: #d4d4d8;
+      font-size: 12px;
+      padding: 6px 9px;
+    }
+
+    .studio-shell {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 360px;
+      gap: 18px;
+      align-items: start;
+    }
+
+    .preview-stage {
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 10px;
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0.012)),
+        #101012;
+      padding: 16px;
+      box-shadow: 0 18px 44px rgba(0, 0, 0, 0.24);
+    }
+
+    .stage-toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      margin-bottom: 14px;
+    }
+
+    .stage-eyebrow {
+      color: #a3e635;
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 0;
+      text-transform: uppercase;
+    }
+
+    .stage-title {
+      margin: 4px 0 0;
+      color: #f8fafc;
+      font-size: 20px;
+      line-height: 1.2;
+    }
+
+    .nav-controls {
+      display: flex;
+      gap: 8px;
+    }
+
+    .nav-button {
+      min-width: 42px;
+      min-height: 42px;
+      padding: 0;
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      background: rgba(255, 255, 255, 0.06);
+      color: #f8fafc;
+      font-size: 22px;
+      line-height: 1;
+    }
+
+    .active-frame {
+      display: flex;
+      justify-content: center;
+      padding: 16px;
+      border: 1px solid rgba(255, 255, 255, 0.09);
+      border-radius: 10px;
+      background:
+        linear-gradient(135deg, rgba(163, 230, 53, 0.055), rgba(56, 189, 248, 0.035)),
+        #09090b;
+    }
+
+    .active-frame canvas {
+      display: block;
+      width: 100%;
+      max-width: 430px;
+      aspect-ratio: 4 / 5;
+      border-radius: 8px;
+      background: #0a0a0b;
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      box-shadow: 0 22px 54px rgba(0, 0, 0, 0.34);
+    }
+
+    .thumb-strip {
+      display: grid;
+      grid-template-columns: repeat(6, minmax(0, 1fr));
+      gap: 10px;
+      margin-top: 14px;
+    }
+
+    .thumb {
+      min-width: 0;
+      padding: 7px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.04);
+      color: #d4d4d8;
+      cursor: pointer;
+      text-align: left;
+    }
+
+    .thumb.active {
+      border-color: rgba(163, 230, 53, 0.78);
+      box-shadow: 0 0 0 2px rgba(163, 230, 53, 0.12);
+    }
+
+    .thumb canvas {
+      display: block;
+      width: 100%;
+      aspect-ratio: 4 / 5;
+      border-radius: 6px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: #0a0a0b;
+    }
+
+    .thumb-label {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-top: 7px;
+      color: #d4d4d8;
+      font-size: 11px;
+      line-height: 1.2;
+    }
+
+    .thumb-label span:last-child {
+      color: #a1a1aa;
+    }
+
+    .meta-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .meta-row span {
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 999px;
+      color: #d4d4d8;
+      font-size: 12px;
+      font-weight: 700;
+      padding: 6px 9px;
+    }
+
+    .caption-card {
+      margin-top: 14px;
+      border-left: 3px solid #a3e635;
+      padding-left: 12px;
+      color: #d4d4d8;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    .panel-section {
+      margin-top: 16px;
+      padding-top: 14px;
+      border-top: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .panel-label {
+      margin: 0 0 7px;
+      color: #a3e635;
+      font-size: 12px;
+      font-weight: 800;
+      text-transform: uppercase;
+    }
+
+    .verdict {
+      margin-top: 22px;
+      border: 1px solid rgba(163, 230, 53, 0.35);
+      border-radius: 10px;
+      background: rgba(163, 230, 53, 0.08);
+      padding: 16px;
+      color: #e4e4e7;
+      line-height: 1.55;
+    }
+
+    .status {
+      margin: 0 0 14px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.05);
+      color: #d4d4d8;
+      font-size: 14px;
+      min-height: 42px;
+      padding: 10px 12px;
+    }
+
+    .status.good {
+      border-color: rgba(163, 230, 53, 0.35);
+      background: rgba(163, 230, 53, 0.08);
+      color: #ecfccb;
+    }
+
+    .status.error {
+      border-color: rgba(248, 113, 113, 0.45);
+      background: rgba(127, 29, 29, 0.22);
+      color: #fecaca;
+    }
+
+    @media (max-width: 980px) {
+      header {
+        align-items: start;
+        flex-direction: column;
+      }
+
+      .studio-shell {
+        grid-template-columns: 1fr;
+      }
+
+      .controls {
+        grid-template-columns: 1fr;
+      }
+
+      .route-card {
+        position: static;
+      }
+
+      button {
+        min-height: 46px;
+      }
+    }
+
+    @media (max-width: 560px) {
+      main {
+        padding: 18px;
+      }
+
+      .stage-toolbar {
+        align-items: start;
+        flex-direction: column;
+      }
+
+      .thumb-strip {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <div>
+        <h1>Preview de carrusel inteligente</h1>
+        <p>
+          Genera, revisa y compara slides antes de llevarlas a Instagram.
+        </p>
+      </div>
+      <div class="badge">1080 x 1350 PNG</div>
+    </header>
+
+    <section class="controls" aria-label="Simulador de topic">
+      <textarea id="topicInput" aria-label="Topic del carrusel">captar pacientes para una clinica dental premium</textarea>
+      <select id="templateSelect" aria-label="Plantilla del carrusel">
+        <option value="auto">Auto</option>
+      </select>
+      <button id="generateButton" type="button">Ver carrusel</button>
+      <button id="aiButton" type="button" class="secondary">Generar IA</button>
+    </section>
+
+    <p class="status" id="statusText"></p>
+
+    <section class="examples" aria-label="Topics de ejemplo">
+      <button type="button" data-topic="vender un programa de fitness para mujeres ocupadas">Fitness</button>
+      <button type="button" data-topic="explicar inteligencia artificial a pequenos negocios">IA para negocios</button>
+      <button type="button" data-topic="captar reservas para un restaurante japones premium">Restaurante</button>
+      <button type="button" data-topic="lanzar una marca personal de arquitectura sostenible">Arquitectura</button>
+      <button type="button" data-topic="conseguir leads para una clinica dental premium">Clinica dental</button>
+      <button type="button" data-topic="romper el mito de que la inteligencia artificial sustituye a todo el equipo">Mito</button>
+      <button type="button" data-topic="errores que hacen perder reservas a un restaurante">Errores</button>
+      <button type="button" data-topic="como elegir entre implantes dentales baratos y un tratamiento premium">Comparacion</button>
+    </section>
+
+    <section class="studio-shell" aria-label="Preview del carrusel">
+      <section class="preview-stage" aria-label="Slide seleccionada">
+        <div class="stage-toolbar">
+          <div>
+            <div class="stage-eyebrow" id="slideEyebrow">Slide 1</div>
+            <h2 class="stage-title" id="slideTitle">Portada</h2>
+          </div>
+          <div class="nav-controls" aria-label="Navegacion de slides">
+            <button class="nav-button" id="prevSlide" type="button" aria-label="Slide anterior">&lsaquo;</button>
+            <button class="nav-button" id="nextSlide" type="button" aria-label="Slide siguiente">&rsaquo;</button>
+          </div>
+        </div>
+        <div class="active-frame">
+          <canvas id="activeCanvas" aria-label="PNG de la slide seleccionada"></canvas>
+        </div>
+        <div class="thumb-strip" id="thumbStrip" aria-label="Miniaturas del carrusel"></div>
+      </section>
+
+      <aside class="route-card" id="routeCard" aria-label="Router de plantilla"></aside>
+    </section>
+
+    <section class="verdict">
+      Lectura sincera: esto ya resuelve la parte t&eacute;cnica de visualizar, descargar y enviar a Instagram,
+      pero para que el usuario diga "guau" falta el siguiente nivel: plantillas premium por nicho,
+      m&aacute;s jerarqu&iacute;a editorial, layouts variados, recursos de marca, fotos o fondos inteligentes
+      y control fino del estilo visual.
+    </section>
+  </main>
+
+  <script>
+    const templates = {
+      myth_busting: {
+        name: "Mito vs realidad",
+        reason: "El tema gana fuerza rompiendo una creencia previa.",
+        pattern: ["cover", "myth", "reality", "why-it-matters", "proof", "cta"],
+        colors: ["#fb7185", "#38bdf8", "#4c0519", "#0f3d52"]
+      },
+      mistake_fix: {
+        name: "Error comun",
+        reason: "Conviene mostrar el fallo, su coste y la correccion.",
+        pattern: ["cover", "mistake", "cost", "why-it-happens", "fix", "cta"],
+        colors: ["#f97316", "#a3e635", "#431407", "#365314"]
+      },
+      checklist: {
+        name: "Checklist accionable",
+        reason: "El usuario necesita pasos claros y utilidad practica.",
+        pattern: ["cover", "step-1", "step-2", "step-3", "final-check", "cta"],
+        colors: ["#a3e635", "#22c55e", "#365314", "#052e16"]
+      },
+      objection_handler: {
+        name: "Objecion",
+        reason: "Hay una barrera que conviene resolver antes de pedir accion.",
+        pattern: ["cover", "objection", "reframe", "proof", "safe-next-step", "cta"],
+        colors: ["#38bdf8", "#c084fc", "#0f3d52", "#3b0764"]
+      },
+      case_study: {
+        name: "Caso o prueba",
+        reason: "Hay credibilidad o resultado para construir confianza.",
+        pattern: ["cover", "before", "turning-point", "process", "result", "lesson", "cta"],
+        colors: ["#facc15", "#38bdf8", "#422006", "#0f3d52"]
+      },
+      direct_offer: {
+        name: "Venta directa",
+        reason: "La intencion parece comercial y necesita llevar a una accion concreta.",
+        pattern: ["cover", "pain", "offer", "proof", "why-now", "cta"],
+        colors: ["#a3e635", "#facc15", "#365314", "#422006"]
+      },
+      educational: {
+        name: "Educativo",
+        reason: "El tema necesita claridad y autoridad antes de convertir.",
+        pattern: ["cover", "context", "key-idea", "example", "application", "cta"],
+        colors: ["#38bdf8", "#a3e635", "#0f3d52", "#365314"]
+      },
+      comparison: {
+        name: "Comparacion",
+        reason: "La comparacion ayuda a decidir entre dos enfoques.",
+        pattern: ["cover", "option-a", "option-b", "real-difference", "decision-rule", "cta"],
+        colors: ["#c084fc", "#38bdf8", "#3b0764", "#0f3d52"]
+      },
+      before_after: {
+        name: "Antes/despues",
+        reason: "La narrativa de transformacion hace visible el valor.",
+        pattern: ["cover", "before", "hidden-cost", "shift", "after", "cta"],
+        colors: ["#2dd4bf", "#a3e635", "#134e4a", "#365314"]
+      }
+    };
+
+    let output = buildCarouselFromTopic("captar pacientes para una clinica dental premium");
+
+    function cleanTopic(topic) {
+      return String(topic || "")
+        .replace(/\s+/g, " ")
+        .trim()
+        .slice(0, 130) || "mejorar resultados en Instagram";
+    }
+
+    function capitalize(text) {
+      return text.charAt(0).toUpperCase() + text.slice(1);
+    }
+
+    function normalizeText(text) {
+      return cleanTopic(text)
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "");
+    }
+
+    function hasAny(text, terms) {
+      return terms.some((term) => text.includes(normalizeText(term)));
+    }
+
+    function chooseTemplate(topic, forcedTemplateId) {
+      if (forcedTemplateId && forcedTemplateId !== "auto" && templates[forcedTemplateId]) return forcedTemplateId;
+      const text = normalizeText(topic);
+      if (hasAny(text, ["caso", "resultado", "prueba", "testimonio", "datos"])) return "case_study";
+      if (hasAny(text, ["miedo", "duda", "objecion", "caro", "precio", "desconfianza"])) return "objection_handler";
+      if (hasAny(text, ["mito", "realidad", "mentira", "falso", "creen"])) return "myth_busting";
+      if (hasAny(text, ["error", "errores", "fallo", "evita", "perder"])) return "mistake_fix";
+      if (hasAny(text, ["checklist", "pasos", "guia", "metodo", "proceso", "como"])) return "checklist";
+      if (hasAny(text, [" vs ", "versus", "comparar", "diferencia", "elegir entre"])) return "comparison";
+      if (hasAny(text, ["antes", "despues", "transformacion", "cambio", "mejora"])) return "before_after";
+      if (hasAny(text, ["vender", "captar", "reservas", "leads", "clientes", "pacientes", "programa", "oferta"])) return "direct_offer";
+      return "educational";
+    }
+
+    function makeHeadline(templateId, job, topicLabel) {
+      const cleanedTopic = topicLabel
+        .replace(/^(checklist|guia|pasos|como)\s+(para|de)?\s*/i, "")
+        .replace(/^para\s+/i, "")
+        .trim();
+      const shortTopic = (cleanedTopic || topicLabel).slice(0, 76);
+      const byJob = {
+        cover: {
+          myth_busting: "La verdad incómoda",
+          mistake_fix: "El error que frena resultados",
+          checklist: "La checklist que ordena todo",
+          objection_handler: "Antes de decidir",
+          case_study: "Lo que demuestra el caso",
+          direct_offer: "De interés a acción",
+          educational: "Explicado claro",
+          comparison: "Cómo elegir bien",
+          before_after: "Antes y después"
+        },
+        myth: "Lo que muchos creen",
+        reality: "Lo que ocurre de verdad",
+        "why-it-matters": "Por que esto cambia la decision",
+        mistake: "El fallo que se repite",
+        cost: "El coste oculto",
+        "why-it-happens": "Por que pasa",
+        fix: "La correccion inteligente",
+        "step-1": "Paso 1: define el criterio",
+        "step-2": "Paso 2: elimina ruido",
+        "step-3": "Paso 3: concreta la accion",
+        "final-check": "Checklist final",
+        objection: "La duda real",
+        reframe: "La forma correcta de verlo",
+        proof: "La prueba que reduce riesgo",
+        "safe-next-step": "Un siguiente paso seguro",
+        before: "Antes: el punto de partida",
+        "turning-point": "El punto de cambio",
+        process: "El proceso que lo explica",
+        result: "El resultado visible",
+        lesson: "La leccion aplicable",
+        pain: "El problema que ya cuesta",
+        offer: "La solucion concreta",
+        "why-now": "Por que actuar ahora",
+        context: "El contexto que faltaba",
+        "key-idea": "La idea clave",
+        example: "Un ejemplo facil de ver",
+        application: "Como aplicarlo",
+        "option-a": "Opcion A: lo barato",
+        "option-b": "Opcion B: lo estrategico",
+        "real-difference": "La diferencia real",
+        "decision-rule": "Regla para decidir",
+        "hidden-cost": "El coste que no se ve",
+        shift: "El cambio que desbloquea",
+        after: "Despues: el resultado deseado",
+        cta: "Convierte esto en accion"
+      };
+
+      if (job === "cover") return byJob.cover[templateId] || byJob.cover.educational;
+      return byJob[job] || "La idea que importa";
+    }
+
+    function makeSupport(job, topic) {
+      const support = {
+        cover: "Tema: " + topic + ". La portada abre una tension clara sin pegar el topic entero.",
+        myth: "Nombramos la creencia que bloquea a la audiencia.",
+        reality: "Reencuadramos el tema con una explicacion mas precisa.",
+        "why-it-matters": "Conectamos la idea con una consecuencia concreta.",
+        mistake: "Hacemos visible la accion que parece normal pero reduce resultados.",
+        cost: "Mostramos que el problema tiene coste en confianza, tiempo o ventas.",
+        "why-it-happens": "Explicamos la causa para que no suene a regano generico.",
+        fix: "Damos una alternativa concreta y accionable.",
+        "step-1": "Primer criterio para ordenar la decision.",
+        "step-2": "Segundo paso para evitar contenido vago.",
+        "step-3": "Tercer paso para convertir idea en ejecucion.",
+        "final-check": "Resumen rapido antes de publicar o vender.",
+        objection: "Ponemos sobre la mesa la duda que la persona no siempre dice.",
+        reframe: "Cambiamos la interpretacion para reducir friccion.",
+        proof: "Introducimos evidencia, proceso o autoridad sin inventar claims.",
+        "safe-next-step": "Proponemos una accion pequena que no se siente agresiva.",
+        before: "Mostramos el estado inicial y su friccion.",
+        "turning-point": "Identificamos que cambio el resultado.",
+        process: "Convertimos el caso en aprendizaje replicable.",
+        result: "Ensenamos el resultado sin prometer garantias falsas.",
+        lesson: "Sacamos una conclusion util para la audiencia.",
+        pain: "Conectamos el problema con una consecuencia concreta.",
+        offer: "Presentamos la oferta como respuesta natural al problema.",
+        "why-now": "Damos una razon honesta para no dejarlo para despues.",
+        context: "Explicamos lo minimo necesario para entender el tema.",
+        "key-idea": "Condensamos el aprendizaje central.",
+        example: "Bajamos la idea a una situacion reconocible.",
+        application: "Mostramos como usarlo en el dia a dia.",
+        "option-a": "Mostramos el enfoque habitual y sus limites.",
+        "option-b": "Mostramos el enfoque estrategico y su valor.",
+        "real-difference": "Aclaramos que cambia de verdad entre ambas opciones.",
+        "decision-rule": "Damos una regla simple para elegir.",
+        "hidden-cost": "Nombramos lo que se pierde manteniendo el estado actual.",
+        shift: "Explicamos el movimiento que cambia el resultado.",
+        after: "Visualizamos el resultado deseado.",
+        cta: "Cerramos con una accion clara: guardar, responder, reservar o enviar DM."
+      };
+      return support[job] || "Este slide aterriza el topic: " + topic + ".";
+    }
+
+    function buildCarouselFromTopic(rawTopic, forcedTemplateId) {
+      const topic = cleanTopic(rawTopic);
+      const topicLabel = capitalize(topic);
+      const templateId = chooseTemplate(topic, forcedTemplateId);
+      const template = templates[templateId];
+
+      return {
+        route: { id: templateId, ...template },
+        strategy: { recommendedFormat: "carousel" },
+        source: "local",
+        model: "",
+        caption: "",
+        cta: "Guarda esta idea y convierte el interes en una accion clara.",
+        carousel: template.pattern.map((job, index) => ({
+          slide: index + 1,
+          type: job,
+          headline: makeHeadline(templateId, job, topicLabel),
+          support: makeSupport(job, topic),
+          visualCue: template.name + ": " + template.reason
+        }))
+      };
+    }
+
+    function buildCarouselFromAiResponse(data) {
+      const route = data.contentRoute || {};
+      const templateId = templates[route.templateId] ? route.templateId : chooseTemplate(input.value, templateSelect.value);
+      const template = templates[templateId];
+      const carousel = Array.isArray(data.carousel) && data.carousel.length
+        ? data.carousel.map((slide, index) => ({
+          slide: Number(slide.slide) || index + 1,
+          type: slide.type || template.pattern[index] || "insight",
+          headline: slide.headline || "Idea principal",
+          support: slide.support || "",
+          visualCue: slide.visualCue || template.name + ": " + template.reason
+        }))
+        : buildCarouselFromTopic(input.value, templateId).carousel;
+
+      return {
+        route: {
+          id: templateId,
+          ...template,
+          name: route.templateName || template.name,
+          reason: route.reasoning || template.reason,
+          pattern: Array.isArray(route.slidePattern) && route.slidePattern.length ? route.slidePattern : template.pattern
+        },
+        strategy: { recommendedFormat: "carousel" },
+        source: "ai",
+        model: data.model || "",
+        caption: data.caption || "",
+        cta: data.cta || "",
+        carousel
+      };
+    }
+
+    function escapeHtml(value) {
+      return String(value || "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    }
+
+    function roundRect(ctx, x, y, width, height, radius) {
+      ctx.beginPath();
+      ctx.moveTo(x + radius, y);
+      ctx.lineTo(x + width - radius, y);
+      ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+      ctx.lineTo(x + width, y + height - radius);
+      ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+      ctx.lineTo(x + radius, y + height);
+      ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
+      ctx.lineTo(x, y + radius);
+      ctx.quadraticCurveTo(x, y, x + radius, y);
+      ctx.closePath();
+    }
+
+    function chooseFontSize(ctx, text, maxWidth, maxSize, minSize, maxLines) {
+      const lineLimit = maxLines || 5;
+      for (let size = maxSize; size >= minSize; size -= 2) {
+        ctx.font = "800 " + size + "px Inter, Arial, sans-serif";
+        const longest = text
+          .split(/\s+/)
+          .reduce((current, word) => Math.max(current, ctx.measureText(word).width), 0);
+        if (longest <= maxWidth && measureWrappedLines(ctx, text, maxWidth).length <= lineLimit) return size;
+      }
+      return minSize;
+    }
+
+    function measureWrappedLines(ctx, text, maxWidth) {
+      const words = text.split(/\s+/).filter(Boolean);
+      const lines = [];
+      let line = "";
+
+      for (const word of words) {
+        const testLine = line ? line + " " + word : word;
+        if (ctx.measureText(testLine).width > maxWidth && line) {
+          lines.push(line);
+          line = word;
+        } else {
+          line = testLine;
+        }
+      }
+
+      if (line) lines.push(line);
+      return lines;
+    }
+
+    function fitLineWithEllipsis(ctx, line, maxWidth) {
+      const suffix = "...";
+      let result = line.replace(/[.,;:!?]$/, "");
+
+      while (result.length > 0 && ctx.measureText(result + suffix).width > maxWidth) {
+        result = result.slice(0, -1).trimEnd();
+      }
+
+      return result + suffix;
+    }
+
+    function wrapText(ctx, text, x, y, maxWidth, lineHeight, maxLines) {
+      const lines = measureWrappedLines(ctx, text, maxWidth);
+      const visibleLines = lines.slice(0, maxLines);
+      if (lines.length > maxLines && visibleLines.length > 0) {
+        const lastIndex = visibleLines.length - 1;
+        visibleLines[lastIndex] = fitLineWithEllipsis(ctx, visibleLines[lastIndex], maxWidth);
+      }
+      visibleLines.forEach((lineText, lineIndex) => ctx.fillText(lineText, x, y + lineIndex * lineHeight));
+      return visibleLines.length;
+    }
+
+    function renderCarouselSlide(canvas, slide, index) {
+      const width = 1080;
+      const height = 1350;
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext("2d");
+      const palette = {
+        accent: index % 2 === 0 ? output.route.colors[0] : output.route.colors[1],
+        secondaryAccent: index % 2 === 0 ? output.route.colors[1] : output.route.colors[0],
+        mutedAccent: index % 2 === 0 ? output.route.colors[2] : output.route.colors[3],
+        background: "#0a0a0b",
+        surface: "#141416",
+        foreground: "#f8fafc",
+        muted: "#cbd5e1"
+      };
+      const layout = getPreviewLayout(output.route.id);
+
+      ctx.fillStyle = palette.background;
+      ctx.fillRect(0, 0, width, height);
+      drawPreviewBackground(ctx, output.route.id, slide.type, index, width, height, palette);
+      drawPreviewChrome(ctx, slide, width, palette);
+      drawPreviewCopy(ctx, slide, layout, palette);
+    }
+
+    function drawPreviewBackground(ctx, templateId, slideType, index, width, height, palette) {
+      const gradient = ctx.createLinearGradient(0, 0, width, height);
+      gradient.addColorStop(0, palette.surface);
+      gradient.addColorStop(0.55, "#111113");
+      gradient.addColorStop(1, palette.mutedAccent);
+      ctx.save();
+      ctx.shadowColor = "rgba(0,0,0,0.55)";
+      ctx.shadowBlur = 38;
+      ctx.shadowOffsetY = 18;
+      ctx.fillStyle = gradient;
+      roundRect(ctx, 54, 54, width - 108, height - 108, 44);
+      ctx.fill();
+      ctx.restore();
+      ctx.strokeStyle = "rgba(255,255,255,0.08)";
+      ctx.lineWidth = 2;
+      roundRect(ctx, 54, 54, width - 108, height - 108, 44);
+      ctx.stroke();
+      drawPreviewGrid(ctx, width, height);
+      drawPreviewAccentWash(ctx, width, height, palette);
+
+      if (templateId === "myth_busting") drawPreviewSplit(ctx, width, height, palette, "MITO", "REALIDAD");
+      else if (templateId === "comparison") drawPreviewSplit(ctx, width, height, palette, "OPCION A", "OPCION B");
+      else if (templateId === "before_after") drawPreviewSplit(ctx, width, height, palette, "ANTES", "DESPUES");
+      else if (templateId === "mistake_fix") drawPreviewDiagnostic(ctx, width, palette, slideType);
+      else if (templateId === "checklist") drawPreviewChecklist(ctx, height, palette, index);
+      else if (templateId === "objection_handler") drawPreviewObjection(ctx, width, palette);
+      else if (templateId === "case_study") drawPreviewEvidence(ctx, palette);
+      else if (templateId === "direct_offer") drawPreviewOffer(ctx, width, palette);
+      else drawPreviewEditorial(ctx, width, height, palette);
+    }
+
+    function drawPreviewChrome(ctx, slide, width, palette) {
+      ctx.fillStyle = palette.accent;
+      roundRect(ctx, 90, 96, 92, 54, 27);
+      ctx.fill();
+      ctx.fillStyle = "#050505";
+      ctx.font = "800 24px Inter, Arial, sans-serif";
+      ctx.textBaseline = "middle";
+      ctx.fillText(String(slide.slide).padStart(2, "0"), 120, 124);
+      ctx.fillStyle = "rgba(255,255,255,0.08)";
+      roundRect(ctx, 200, 96, 170, 54, 27);
+      ctx.fill();
+      ctx.fillStyle = palette.foreground;
+      ctx.font = "700 20px Inter, Arial, sans-serif";
+      ctx.fillText(slide.type.toUpperCase().slice(0, 16), 224, 124);
+      ctx.fillStyle = palette.muted;
+      ctx.font = "700 20px Inter, Arial, sans-serif";
+      ctx.textAlign = "right";
+      ctx.fillText(output.route.name.toUpperCase().slice(0, 26), width - 90, 124);
+      ctx.textAlign = "left";
+      ctx.strokeStyle = "rgba(255,255,255,0.08)";
+      ctx.beginPath();
+      ctx.moveTo(90, 1220);
+      ctx.lineTo(width - 90, 1220);
+      ctx.stroke();
+      ctx.font = "600 22px Inter, Arial, sans-serif";
+      ctx.fillText("WIASocial / Content OS", 90, 1248);
+      ctx.textAlign = "right";
+      ctx.fillText(slide.slide + "/" + output.carousel.length, width - 90, 1248);
+      ctx.textAlign = "left";
+    }
+
+    function drawPreviewGrid(ctx, width, height) {
+      ctx.save();
+      ctx.strokeStyle = "rgba(255,255,255,0.025)";
+      ctx.lineWidth = 1;
+      for (let x = 126; x < width - 90; x += 96) {
+        ctx.beginPath();
+        ctx.moveTo(x, 190);
+        ctx.lineTo(x, height - 190);
+        ctx.stroke();
+      }
+      for (let y = 220; y < height - 180; y += 96) {
+        ctx.beginPath();
+        ctx.moveTo(90, y);
+        ctx.lineTo(width - 90, y);
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
+
+    function drawPreviewAccentWash(ctx, width, height, palette) {
+      const wash = ctx.createLinearGradient(90, 220, width - 90, height - 180);
+      wash.addColorStop(0, palette.accent + "20");
+      wash.addColorStop(0.45, "rgba(255,255,255,0)");
+      wash.addColorStop(1, palette.secondaryAccent + "18");
+      ctx.fillStyle = wash;
+      roundRect(ctx, 72, 72, width - 144, height - 144, 38);
+      ctx.fill();
+    }
+
+    function drawPreviewCopy(ctx, slide, layout, palette) {
+      const headlineFont = chooseFontSize(ctx, slide.headline, layout.headline.width, layout.headline.maxSize, layout.headline.minSize, layout.headline.maxLines);
+      ctx.fillStyle = palette.foreground;
+      ctx.font = "800 " + headlineFont + "px Inter, Arial, sans-serif";
+      ctx.textBaseline = "top";
+      const headlineLineHeight = headlineFont * layout.headline.lineHeightRatio;
+      const headlineLines = wrapText(ctx, slide.headline, layout.headline.x, layout.headline.y, layout.headline.width, headlineLineHeight, layout.headline.maxLines);
+
+      ctx.fillStyle = palette.muted;
+      ctx.font = "400 " + layout.support.fontSize + "px Inter, Arial, sans-serif";
+      const supportY = Math.max(layout.support.y, layout.headline.y + headlineLines * headlineLineHeight + 58);
+      const availableSupportHeight = Math.max(96, 1016 - supportY);
+      const supportMaxLines = Math.max(2, Math.min(layout.support.maxLines, Math.floor(availableSupportHeight / layout.support.lineHeight)));
+      wrapText(ctx, slide.support, layout.support.x, supportY, layout.support.width, layout.support.lineHeight, supportMaxLines);
+
+      drawPreviewActionBar(ctx, slide, palette);
+    }
+
+    function getSlideActionCopy(slide) {
+      const type = String(slide.type || "").toLowerCase();
+      const isLast = slide.slide === output.carousel.length || type.includes("cta");
+      if (isLast && output.cta) return output.cta;
+
+      const byType = {
+        cover: "Desliza para ver el criterio antes de decidir.",
+        pain: "El problema no es interes: es falta de siguiente paso.",
+        offer: "La oferta debe sentirse como respuesta, no como presion.",
+        proof: "La confianza sube cuando la prueba es concreta.",
+        "why-now": "No fuerces urgencia falsa: explica el coste de esperar.",
+        objection: "Una buena objecion se responde con calma y prueba.",
+        reframe: "Cambia el marco antes de pedir una accion.",
+        "safe-next-step": "Haz que el siguiente paso sea facil de aceptar.",
+        myth: "Primero nombra la creencia que bloquea la decision.",
+        reality: "Despues ensena la version mas precisa y util.",
+        mistake: "El error debe reconocerse en dos segundos.",
+        fix: "La solucion tiene que ser concreta y accionable.",
+        cta: "Guarda, responde o reserva: una sola accion clara."
+      };
+
+      return byType[type] || "Guarda esta idea para revisar el siguiente paso.";
+    }
+
+    function drawPreviewActionBar(ctx, slide, palette) {
+      const type = String(slide.type || "").toLowerCase();
+      const isLast = slide.slide === output.carousel.length || type.includes("cta");
+      const label = isLast ? "SIGUIENTE PASO" : "IDEA CLAVE";
+      const copy = getSlideActionCopy(slide);
+
+      const panel = { x: 90, y: 1054, width: 900, height: 146 };
+
+      ctx.fillStyle = "rgba(255,255,255,0.09)";
+      roundRect(ctx, panel.x, panel.y, panel.width, panel.height, 28);
+      ctx.fill();
+
+      ctx.fillStyle = palette.accent;
+      roundRect(ctx, panel.x + 22, panel.y + 24, 10, 94, 5);
+      ctx.fill();
+
+      ctx.fillStyle = palette.accent;
+      ctx.font = "800 23px Inter, Arial, sans-serif";
+      ctx.fillText(label, panel.x + 56, panel.y + 28);
+
+      ctx.fillStyle = palette.foreground;
+      ctx.font = "600 32px Inter, Arial, sans-serif";
+      wrapText(ctx, copy, panel.x + 56, panel.y + 68, 800, 40, 2);
+    }
+
+    function getPreviewLayout(templateId) {
+      const base = {
+        headline: { x: 90, y: 310, width: 880, maxSize: 92, minSize: 48, maxLines: 5, lineHeightRatio: 1.1 },
+        support: { x: 92, y: 760, width: 850, fontSize: 36, lineHeight: 48, maxLines: 6 },
+        cuePanel: { x: 90, y: 1070, width: 900, height: 128 },
+        cue: { x: 124, y: 1140, width: 828, fontSize: 28, lineHeight: 36, maxLines: 2 }
+      };
+      if (templateId === "checklist") return { ...base, headline: { x: 222, y: 292, width: 720, maxSize: 84, minSize: 44, maxLines: 5, lineHeightRatio: 1.08 }, support: { x: 224, y: 748, width: 720, fontSize: 34, lineHeight: 46, maxLines: 6 } };
+      if (templateId === "direct_offer") return { ...base, headline: { x: 90, y: 270, width: 880, maxSize: 94, minSize: 50, maxLines: 5, lineHeightRatio: 1.08 }, support: { x: 92, y: 720, width: 850, fontSize: 38, lineHeight: 50, maxLines: 5 }, cuePanel: { x: 90, y: 1048, width: 900, height: 150 }, cue: { x: 124, y: 1124, width: 828, fontSize: 30, lineHeight: 38, maxLines: 2 } };
+      if (templateId === "objection_handler") return { ...base, headline: { x: 130, y: 340, width: 820, maxSize: 86, minSize: 46, maxLines: 5, lineHeightRatio: 1.1 }, support: { x: 132, y: 780, width: 810, fontSize: 34, lineHeight: 46, maxLines: 5 } };
+      if (templateId === "comparison" || templateId === "before_after") return { ...base, headline: { x: 90, y: 258, width: 880, maxSize: 88, minSize: 46, maxLines: 5, lineHeightRatio: 1.08 }, support: { x: 92, y: 730, width: 850, fontSize: 35, lineHeight: 47, maxLines: 5 } };
+      if (templateId === "case_study") return { ...base, headline: { x: 90, y: 286, width: 880, maxSize: 88, minSize: 48, maxLines: 5, lineHeightRatio: 1.08 }, support: { x: 92, y: 700, width: 850, fontSize: 35, lineHeight: 47, maxLines: 5 } };
+      return base;
+    }
+
+    function drawPreviewSplit(ctx, width, height, palette, leftLabel, rightLabel) {
+      ctx.fillStyle = "rgba(255,255,255,0.045)";
+      roundRect(ctx, 90, 194, 424, 832, 34);
+      ctx.fill();
+      ctx.fillStyle = "rgba(255,255,255,0.025)";
+      roundRect(ctx, 566, 194, 424, 832, 34);
+      ctx.fill();
+      ctx.fillStyle = palette.accent;
+      ctx.font = "800 24px Inter, Arial, sans-serif";
+      ctx.fillText(leftLabel, 124, 238);
+      ctx.fillStyle = palette.secondaryAccent;
+      ctx.textAlign = "right";
+      ctx.fillText(rightLabel, width - 124, 238);
+      ctx.textAlign = "left";
+      ctx.strokeStyle = "rgba(255,255,255,0.08)";
+      ctx.beginPath();
+      ctx.moveTo(width / 2, 220);
+      ctx.lineTo(width / 2, height - 250);
+      ctx.stroke();
+    }
+
+    function drawPreviewDiagnostic(ctx, width, palette, slideType) {
+      ctx.fillStyle = "rgba(249,115,22,0.12)";
+      roundRect(ctx, 90, 210, width - 180, 112, 24);
+      ctx.fill();
+      ctx.fillStyle = palette.accent;
+      ctx.font = "800 28px Inter, Arial, sans-serif";
+      ctx.fillText(slideType.toUpperCase(), 124, 250);
+      for (let i = 0; i < 5; i += 1) {
+        ctx.fillStyle = i % 2 === 0 ? palette.accent : "rgba(255,255,255,0.1)";
+        roundRect(ctx, 90 + i * 184, 994, 132, 14, 7);
+        ctx.fill();
+      }
+    }
+
+    function drawPreviewChecklist(ctx, height, palette, index) {
+      ctx.fillStyle = "rgba(255,255,255,0.05)";
+      roundRect(ctx, 90, 214, 92, height - 384, 46);
+      ctx.fill();
+      for (let i = 0; i < 5; i += 1) {
+        ctx.fillStyle = i <= index % 5 ? palette.accent : "rgba(255,255,255,0.12)";
+        roundRect(ctx, 112, 278 + i * 132, 48, 48, 24);
+        ctx.fill();
+      }
+    }
+
+    function drawPreviewObjection(ctx, width, palette) {
+      ctx.fillStyle = "rgba(255,255,255,0.055)";
+      roundRect(ctx, 98, 244, width - 196, 726, 54);
+      ctx.fill();
+      ctx.fillStyle = palette.accent;
+      ctx.font = "900 150px Inter, Arial, sans-serif";
+      ctx.fillText("?", width - 224, 360);
+      ctx.strokeStyle = "rgba(255,255,255,0.08)";
+      ctx.lineWidth = 2;
+      roundRect(ctx, 122, 268, width - 244, 678, 44);
+      ctx.stroke();
+    }
+
+    function drawPreviewEvidence(ctx, palette) {
+      ["ANTES", "PROCESO", "RESULTADO"].forEach((label, index) => {
+        ctx.fillStyle = "rgba(255,255,255,0.055)";
+        roundRect(ctx, 90 + index * 304, 874, 268, 120, 26);
+        ctx.fill();
+        ctx.fillStyle = index === 2 ? palette.accent : palette.muted;
+        ctx.font = "800 22px Inter, Arial, sans-serif";
+        ctx.fillText(label, 116 + index * 304, 918);
+      });
+    }
+
+    function drawPreviewOffer(ctx, width, palette) {
+      ctx.fillStyle = "rgba(163,230,53,0.08)";
+      roundRect(ctx, 90, 214, width - 180, 108, 30);
+      ctx.fill();
+      ctx.fillStyle = palette.accent;
+      ctx.font = "800 24px Inter, Arial, sans-serif";
+      ctx.fillText("OFERTA CLARA -> SIGUIENTE PASO", 124, 254);
+    }
+
+    function drawPreviewEditorial(ctx, width, height, palette) {
+      ctx.fillStyle = palette.accent;
+      roundRect(ctx, 90, 220, 12, height - 430, 6);
+      ctx.fill();
+      ctx.fillStyle = "rgba(255,255,255,0.045)";
+      roundRect(ctx, width - 292, 232, 202, 202, 38);
+      ctx.fill();
+    }
+
+    const STORAGE_KEY = "wiasocial.carousel.preview.v2";
+    let selectedIndex = 0;
+
+    const activeCanvas = document.getElementById("activeCanvas");
+    const thumbStrip = document.getElementById("thumbStrip");
+    const slideEyebrow = document.getElementById("slideEyebrow");
+    const slideTitle = document.getElementById("slideTitle");
+    const prevSlideButton = document.getElementById("prevSlide");
+    const nextSlideButton = document.getElementById("nextSlide");
+    const input = document.getElementById("topicInput");
+    const templateSelect = document.getElementById("templateSelect");
+    const routeCard = document.getElementById("routeCard");
+    const generateButton = document.getElementById("generateButton");
+    const aiButton = document.getElementById("aiButton");
+    const statusText = document.getElementById("statusText");
+    const exampleButtons = document.querySelectorAll("[data-topic]");
+
+    function persistState() {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify({
+          output,
+          topic: input.value,
+          templateId: templateSelect.value,
+          selectedIndex,
+          status: statusText.textContent,
+          statusClass: statusText.className
+        }));
+      } catch {
+        // LocalStorage puede estar deshabilitado; la preview sigue funcionando.
+      }
+    }
+
+    function restoreState() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) return null;
+        const restored = JSON.parse(raw);
+        if (!restored || !restored.output || !Array.isArray(restored.output.carousel)) return null;
+        return restored;
+      } catch {
+        return null;
+      }
+    }
+
+    function renderRoutePanel() {
+      const sourceLabel = output.model ? "IA: " + output.model : "Preview local";
+      const captionHtml = output.caption || output.cta
+        ? "<div class=\"panel-section\">" +
+          "<p class=\"panel-label\">Caption y CTA</p>" +
+          "<div class=\"caption-card\">" +
+          (output.caption ? "<strong>Caption:</strong> " + escapeHtml(output.caption) + "<br>" : "") +
+          (output.cta ? "<strong>CTA:</strong> " + escapeHtml(output.cta) : "") +
+          "</div></div>"
+        : "";
+
+      routeCard.innerHTML =
+        "<div class=\"route-title\"><strong>" + escapeHtml(output.route.name) + "</strong><span>" + escapeHtml(output.route.id) + "</span></div>" +
+        "<p>" + escapeHtml(output.route.reason) + "</p>" +
+        "<div class=\"meta-row\"><span>" + escapeHtml(sourceLabel) + "</span><span>" + output.carousel.length + " slides</span><span>" + escapeHtml(output.strategy.recommendedFormat || "carousel") + "</span></div>" +
+        "<div class=\"panel-section\"><p class=\"panel-label\">Estructura</p>" +
+        "<div class=\"pattern\">" + output.route.pattern.map((step, index) => "<span>" + (index + 1) + ". " + escapeHtml(step) + "</span>").join("") + "</div></div>" +
+        captionHtml;
+    }
+
+    function renderStage() {
+      const slide = output.carousel[selectedIndex] || output.carousel[0];
+      if (!slide) return;
+
+      slideEyebrow.textContent = "Slide " + slide.slide + " de " + output.carousel.length + " · " + slide.type;
+      slideTitle.textContent = slide.headline;
+      renderCarouselSlide(activeCanvas, slide, selectedIndex);
+
+      thumbStrip.innerHTML = "";
+      output.carousel.forEach((thumbSlide, index) => {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = index === selectedIndex ? "thumb active" : "thumb";
+        button.setAttribute("aria-label", "Ver slide " + thumbSlide.slide);
+
+        const canvas = document.createElement("canvas");
+        const label = document.createElement("div");
+        label.className = "thumb-label";
+        label.innerHTML = "<strong>" + thumbSlide.slide + "</strong><span>" + escapeHtml(thumbSlide.type) + "</span>";
+
+        button.append(canvas, label);
+        button.addEventListener("click", () => {
+          selectedIndex = index;
+          renderStage();
+          persistState();
+        });
+        thumbStrip.append(button);
+        renderCarouselSlide(canvas, thumbSlide, index);
+      });
+
+      prevSlideButton.disabled = selectedIndex === 0;
+      nextSlideButton.disabled = selectedIndex === output.carousel.length - 1;
+    }
+
+    function renderOutput(nextOutput, options) {
+      output = nextOutput;
+      const nextIndex = options && Number.isInteger(options.selectedIndex) ? options.selectedIndex : 0;
+      selectedIndex = Math.min(Math.max(nextIndex, 0), Math.max(output.carousel.length - 1, 0));
+      renderRoutePanel();
+      renderStage();
+    }
+
+    function renderAll() {
+      statusText.textContent = "Preview local generada sin llamar a IA.";
+      statusText.className = "status";
+      renderOutput(buildCarouselFromTopic(input.value, templateSelect.value), { selectedIndex: 0 });
+      persistState();
+    }
+
+    async function generateWithAi() {
+      statusText.textContent = "Generando con Gemini...";
+      statusText.className = "status";
+      aiButton.disabled = true;
+      generateButton.disabled = true;
+      try {
+        const response = await fetch("/api/dev/content-preview", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            topic: input.value,
+            templateId: templateSelect.value
+          })
+        });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || "No se pudo generar con IA");
+        renderOutput(buildCarouselFromAiResponse(data), { selectedIndex: 0 });
+        statusText.textContent = "Generado con Gemini (" + (data.model || "modelo usado") + "). Si el copy no convence, cambia topic o plantilla y vuelve a probar.";
+        statusText.classList.add("good");
+        persistState();
+      } catch (error) {
+        statusText.textContent = error instanceof Error ? error.message : "No se pudo generar con IA.";
+        statusText.classList.add("error");
+        persistState();
+      } finally {
+        aiButton.disabled = false;
+        generateButton.disabled = false;
+      }
+    }
+
+    generateButton.addEventListener("click", renderAll);
+    aiButton.addEventListener("click", generateWithAi);
+    Object.entries(templates).forEach(([id, template]) => {
+      const option = document.createElement("option");
+      option.value = id;
+      option.textContent = template.name;
+      templateSelect.append(option);
+    });
+    templateSelect.addEventListener("change", renderAll);
+    prevSlideButton.addEventListener("click", () => {
+      selectedIndex = Math.max(0, selectedIndex - 1);
+      renderStage();
+      persistState();
+    });
+    nextSlideButton.addEventListener("click", () => {
+      selectedIndex = Math.min(output.carousel.length - 1, selectedIndex + 1);
+      renderStage();
+      persistState();
+    });
+    input.addEventListener("keydown", (event) => {
+      if ((event.ctrlKey || event.metaKey) && event.key === "Enter") renderAll();
+    });
+    exampleButtons.forEach((button) => {
+      button.addEventListener("click", () => {
+        input.value = button.dataset.topic;
+        renderAll();
+      });
+    });
+
+    const restoredState = restoreState();
+    if (restoredState) {
+      input.value = restoredState.topic || input.value;
+      templateSelect.value = restoredState.templateId || "auto";
+      statusText.textContent = restoredState.status || "Preview restaurada.";
+      statusText.className = restoredState.statusClass || "status";
+      renderOutput(restoredState.output, { selectedIndex: Number(restoredState.selectedIndex) || 0 });
+    } else {
+      renderAll();
+    }
+  </script>
+</body>
+</html>

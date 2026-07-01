@@ -1,0 +1,97 @@
+[
+  {
+    "id": "clinica-estetica-premium",
+    "name": "Clínica estética premium",
+    "brand": {
+      "name": "Lúa Clinic",
+      "niche": "clínica estética facial premium",
+      "audience": "mujeres de 35 a 55 años con alto poder adquisitivo que quieren verse descansadas sin perder naturalidad",
+      "offer": "diagnóstico facial personalizado y plan de rejuvenecimiento natural",
+      "tone": "elegante, experto, cercano y cero agresivo",
+      "avoid": "promesas milagrosas, antes/después exagerado, tono barato, presión comercial"
+    },
+    "brief": {
+      "objective": "generar leads por DM para diagnóstico",
+      "format": "reel",
+      "topic": "errores que hacen que un tratamiento estético se vea artificial",
+      "customerPain": "quieren mejorar su rostro, pero temen verse irreconocibles",
+      "desiredAction": "enviar DM con la palabra NATURAL"
+    }
+  },
+  {
+    "id": "agencia-boutique",
+    "name": "Agencia boutique",
+    "brand": {
+      "name": "Nexo Studio",
+      "niche": "agencia boutique de contenido y performance para marcas personales B2B",
+      "audience": "consultores, founders y expertos que venden servicios de ticket alto",
+      "offer": "sistema mensual de contenido estratégico + captación de leads",
+      "tone": "directo, estratégico, sofisticado y con punto crítico",
+      "avoid": "frases de gurú, humo de marketing, promesas de viralidad"
+    },
+    "brief": {
+      "objective": "atraer leads cualificados para llamada",
+      "format": "carousel",
+      "topic": "por qué publicar mucho no arregla un posicionamiento flojo",
+      "customerPain": "publican con constancia pero no reciben oportunidades comerciales serias",
+      "desiredAction": "pedir auditoría de contenido por DM"
+    }
+  },
+  {
+    "id": "coach-infoproductor",
+    "name": "Coach / infoproductor",
+    "brand": {
+      "name": "Método Clara",
+      "niche": "mentoría para coaches que quieren vender programas grupales",
+      "audience": "coaches y terapeutas con audiencia pequeña que no saben convertir contenido en ventas",
+      "offer": "programa de 8 semanas para lanzar un grupo premium",
+      "tone": "empático, claro, motivador y con autoridad tranquila",
+      "avoid": "toxic positivity, clichés de abundancia, presión emocional"
+    },
+    "brief": {
+      "objective": "calentar audiencia para lanzamiento",
+      "format": "reel",
+      "topic": "la razón por la que tu audiencia te dice 'me encanta' pero no compra",
+      "customerPain": "tienen engagement amable pero pocas ventas",
+      "desiredAction": "responder QUIERO al DM"
+    }
+  },
+  {
+    "id": "negocio-local-premium",
+    "name": "Negocio local premium",
+    "brand": {
+      "name": "Casa Bruma",
+      "niche": "restaurante gastronómico local con menú degustación",
+      "audience": "parejas y grupos de 30 a 60 años que buscan una experiencia especial",
+      "offer": "menú degustación de temporada con reserva anticipada",
+      "tone": "sensorial, elegante, cálido y local",
+      "avoid": "tono de influencer genérico, descuentos agresivos, frases vacías"
+    },
+    "brief": {
+      "objective": "aumentar reservas para fin de semana",
+      "format": "stories",
+      "topic": "mostrar por qué el nuevo menú merece una reserva",
+      "customerPain": "quieren elegir un sitio especial sin arriesgar una mala experiencia",
+      "desiredAction": "reservar desde el enlace o escribir RESERVA"
+    }
+  },
+  {
+    "id": "marca-personal-servicios",
+    "name": "Marca personal de servicios",
+    "brand": {
+      "name": "Álvaro Mesa",
+      "niche": "consultor financiero para autónomos y pequeñas empresas",
+      "audience": "autónomos que facturan bien pero sienten que no controlan caja, impuestos ni decisiones",
+      "offer": "diagnóstico financiero de 60 minutos y plan de control de caja",
+      "tone": "claro, serio, práctico y sin tecnicismos innecesarios",
+      "avoid": "miedo excesivo, promesas de riqueza, jerga bancaria"
+    },
+    "brief": {
+      "objective": "generar conversaciones de diagnóstico",
+      "format": "reel",
+      "topic": "señales de que tu negocio factura pero no está sano",
+      "customerPain": "tienen ingresos, pero no saben por qué siempre falta liquidez",
+      "desiredAction": "enviar DM con la palabra CAJA"
+    }
+  }
+]

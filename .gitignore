@@ -28,6 +28,9 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
+.model-bakeoff/
+.next-dev*.log
+.playwright-mcp/
 
 # env files
 .env*.local
