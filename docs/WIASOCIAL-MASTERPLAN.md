@@ -370,7 +370,14 @@ Genera contenido que el usuario quiera publicar: hooks, captions, carruseles, st
 
 ### 2. Perfil de marca y memoria base
 
-Recoge nicho, oferta, público, tono, objeciones, diferenciador y ejemplos. Evita contenido genérico.
+Recoge nicho, oferta, público, tono, promesa, diferenciador, objeciones, pruebas, límites, estilo visual y ejemplos. Evita contenido genérico.
+
+Estado inicial implementado el 1 de julio de 2026:
+
+- `/settings` funciona como ficha de marca ampliada.
+- `user_settings.brand_memory` guarda la memoria base como JSONB.
+- `buildUserAIContext` expone esa memoria a las rutas IA.
+- Content Studio debe tratar `settings.brandMemory` como fuente de verdad cuando exista.
 
 ### 3. Biblioteca de formatos ganadores
 
@@ -485,6 +492,7 @@ ai_runs
 next_best_actions
 action_events
 leads mejorado
+user_settings.brand_memory
 knowledge_items
 ```
 

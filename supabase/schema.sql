@@ -65,6 +65,7 @@ CREATE TABLE IF NOT EXISTS user_settings (
   offer TEXT,
   default_tone TEXT DEFAULT 'professional',
   default_goal TEXT DEFAULT 'leads',
+  brand_memory JSONB NOT NULL DEFAULT '{}'::jsonb,
   locale TEXT DEFAULT 'es',
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );

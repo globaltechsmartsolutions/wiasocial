@@ -1,4 +1,5 @@
 import { getSupabase } from "@/lib/supabase";
+import { mergeBrandMemory } from "@/lib/brand-memory";
 import type { Lead, LeadStatus, PostPerformance, UserSettings } from "@/types";
 
 // ─── Leads ───────────────────────────────────────────
@@ -129,6 +130,7 @@ export async function fetchSettings(userId: string): Promise<UserSettings | null
     offer: data.offer ?? "",
     defaultTone: data.default_tone ?? "professional",
     defaultGoal: data.default_goal ?? "leads",
+    brandMemory: mergeBrandMemory(data.brand_memory),
   };
 }
 
@@ -144,9 +146,16 @@ export async function saveSettings(userId: string, settings: UserSettings) {
       offer: settings.offer,
       default_tone: settings.defaultTone,
       default_goal: settings.defaultGoal,
+      brand_memory: settings.brandMemory,
       updated_at: new Date().toISOString(),
     }, { onConflict: "user_id" });
-  if (error) throw error;
+  if (error) {
+    const message = String(error.message ?? "");
+    if (message.includes("brand_memory")) {
+      throw new Error("Falta ejecutar la migración de perfil de marca: npm run migrate:brand-profile");
+    }
+    throw error;
+  }
 }
 
 // ─── Follower snapshots ───────────────────────────────

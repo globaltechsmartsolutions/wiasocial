@@ -1,5 +1,6 @@
 import { getSupabaseForUser } from "@/lib/supabase-admin";
-import type { LeadStatus, PostPerformance, UserSettings } from "@/types";
+import { mergeBrandMemory } from "@/lib/brand-memory";
+import type { BrandMemory, LeadStatus, PostPerformance, UserSettings } from "@/types";
 import type { GrowthRadarReport } from "@/types/growth-radar";
 
 type NumericInsightMap = Record<string, number>;
@@ -29,7 +30,9 @@ export interface UserAIContext {
     niche: string;
     targetAudience: string;
     offer: string;
+    defaultTone: string;
     defaultGoal: string;
+    brandMemory: BrandMemory;
   } | null;
   instagram: {
     connected: boolean;
@@ -202,7 +205,9 @@ export async function buildUserAIContext(userId: string, accessToken: string): P
           niche: settings.niche,
           targetAudience: settings.targetAudience,
           offer: settings.offer,
+          defaultTone: settings.defaultTone,
           defaultGoal: settings.defaultGoal,
+          brandMemory: settings.brandMemory,
         }
       : null,
     instagram: instagramContext,
@@ -281,7 +286,7 @@ function buildAudienceSignals(value: unknown): UserAIContext["instagram"] extend
 async function fetchSettingsForContext(sb: ReturnType<typeof getSupabaseForUser>, userId: string): Promise<UserSettings | null> {
   const { data, error } = await sb
     .from("user_settings")
-    .select("brand_name, instagram_handle, niche, target_audience, offer, default_tone, default_goal")
+    .select("brand_name, instagram_handle, niche, target_audience, offer, default_tone, default_goal, brand_memory")
     .eq("user_id", userId)
     .maybeSingle();
 
@@ -294,6 +299,7 @@ async function fetchSettingsForContext(sb: ReturnType<typeof getSupabaseForUser>
     offer: (data.offer as string) ?? "",
     defaultTone: (data.default_tone as UserSettings["defaultTone"]) ?? "professional",
     defaultGoal: (data.default_goal as UserSettings["defaultGoal"]) ?? "leads",
+    brandMemory: mergeBrandMemory(data.brand_memory),
   };
 }
 

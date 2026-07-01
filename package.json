@@ -17,6 +17,7 @@
     "migrate:audience-finder": "node --env-file=.env.local scripts/migrate-audience-finder.mjs",
     "migrate:rate-limit": "node --env-file=.env.local scripts/migrate-rate-limit.mjs",
     "migrate:persistence-fixes": "node --env-file=.env.local scripts/migrate-persistence-fixes.mjs",
+    "migrate:brand-profile": "node --env-file=.env.local scripts/migrate-brand-profile.mjs",
     "model:bakeoff": "node scripts/model-bakeoff.mjs",
     "model:bakeoff:dry-run": "node scripts/model-bakeoff.mjs --dry-run"
   },

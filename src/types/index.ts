@@ -171,6 +171,20 @@ export interface StorySet {
   createdAt: string;
 }
 
+export interface BrandMemory {
+  brandPromise: string;
+  differentiator: string;
+  customerPain: string;
+  customerDesire: string;
+  contentPillars: string;
+  proofPoints: string;
+  objections: string;
+  forbiddenClaims: string;
+  visualStyle: string;
+  brandVoiceNotes: string;
+  referenceExamples: string;
+}
+
 export interface UserSettings {
   brandName: string;
   instagramHandle: string;
@@ -179,6 +193,7 @@ export interface UserSettings {
   offer: string;
   defaultTone: ContentTone;
   defaultGoal: ContentGoal;
+  brandMemory: BrandMemory;
 }
 
 export interface CalendarItem {
