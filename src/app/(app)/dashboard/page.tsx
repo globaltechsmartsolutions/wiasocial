@@ -16,6 +16,7 @@ import { DailyBriefCard } from "@/components/ai/DailyBriefCard";
 import { GrowthRadarCard } from "@/components/ai/GrowthRadarCard";
 import { InstagramConnectBanner } from "@/components/instagram/InstagramConnectBanner";
 import { fetchInstagramConnection } from "@/lib/instagram-client";
+import { fetchGrowthRadar } from "@/lib/ai-client";
 
 export default function DashboardPage() {
   const { t, locale } = useTranslation();
@@ -29,17 +30,19 @@ export default function DashboardPage() {
   const [weekGain, setWeekGain] = useState(0);
   const [brandConfigured, setBrandConfigured] = useState(false);
   const [instagramConnected, setInstagramConnected] = useState(false);
+  const [radarGenerated, setRadarGenerated] = useState(false);
 
   useEffect(() => {
     if (!user) return;
     (async () => {
-      const [leads, posts, followUps, snapshots, settings, instagram] = await Promise.all([
+      const [leads, posts, followUps, snapshots, settings, instagram, radar] = await Promise.all([
         fetchLeads(user.id),
         fetchPosts(user.id),
         fetchFollowUps(user.id),
         fetchFollowerSnapshots(user.id),
         fetchSettings(user.id),
         fetchInstagramConnection().catch(() => null),
+        fetchGrowthRadar().catch(() => null),
       ]);
       setTotalLeads(leads.length);
       setCallsBooked(leads.filter((l) => l.status === "call_booked").length);
@@ -52,6 +55,7 @@ export default function DashboardPage() {
       if (latest && prev) setWeekGain(latest.followers - prev.followers);
       setBrandConfigured(Boolean(settings?.niche && settings?.targetAudience && settings?.offer));
       setInstagramConnected(Boolean(instagram));
+      setRadarGenerated(Boolean(radar?.report));
       setLoading(false);
     })();
   }, [user]);
@@ -70,39 +74,37 @@ export default function DashboardPage() {
       <div className="mt-6 grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
         <Card glow>
           <CardHeader
-            title="Siguiente mejor acción"
-            description="WIA prioriza el paso que más desbloquea crecimiento real ahora mismo."
+            title={t.dashboard.nextAction}
+            description={t.dashboard.nextActionDesc}
           />
           <NextAction
             brandConfigured={brandConfigured}
             instagramConnected={instagramConnected}
             totalLeads={totalLeads}
             bestPost={Boolean(bestPost)}
+            t={t.dashboard}
           />
         </Card>
 
         <Card>
-          <CardHeader title="Checklist de activación IA" description="Completa estos pasos para que la IA trabaje con más contexto." />
+          <CardHeader title={t.dashboard.activationChecklist} description={t.dashboard.activationChecklistDesc} />
           <ActivationChecklist
             items={[
-              { label: "Perfil de marca configurado", done: brandConfigured, href: "/settings", icon: Settings },
-              { label: "Instagram conectado", done: instagramConnected, href: "/instagram-data", icon: Instagram },
-              { label: "Radar IA generado", done: true, href: "/growth-radar", icon: Radar },
-              { label: "Primer lead en CRM", done: totalLeads > 0, href: "/leads", icon: Users },
+              { label: t.dashboard.checkBrandProfile, done: brandConfigured, href: "/settings", icon: Settings },
+              { label: t.dashboard.checkInstagram, done: instagramConnected, href: "/instagram-data", icon: Instagram },
+              { label: t.dashboard.checkRadar, done: radarGenerated, href: "/growth-radar", icon: Radar },
+              { label: t.dashboard.checkFirstLead, done: totalLeads > 0, href: "/leads", icon: Users },
             ]}
           />
         </Card>
       </div>
 
-      <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
         <StatCard title={t.dashboard.totalLeads} value={totalLeads} icon={Users} trendUp />
         <StatCard title={t.dashboard.callsBooked} value={callsBooked} icon={Phone} trendUp />
         <StatCard title={t.dashboard.activeClients} value={clients} icon={TrendingUp} />
+        <StatCard title={t.dashboard.followersThisWeek} value={`+${weekGain}`} icon={TrendingUp} trend={`+${weekGain}`} trendUp />
         <StatCard title={t.dashboard.followUpsToday} value={followUpsToday.length} icon={Calendar} />
-      </div>
-
-      <div className="mt-4">
-        <StatCard title="Seguidores esta semana" value={`+${weekGain}`} icon={TrendingUp} trend={`+${weekGain} ganados`} trendUp />
       </div>
 
       <div className="mt-8 grid gap-6 lg:grid-cols-2">
@@ -126,7 +128,7 @@ export default function DashboardPage() {
               </div>
               <Link href="/analytics"><Button variant="secondary" size="sm" className="w-full">{t.dashboard.viewAnalytics}<ArrowRight className="h-3 w-3" /></Button></Link>
             </div>
-          ) : <p className="text-sm text-muted">Registra publicaciones en Analíticas para ver tu mejor contenido</p>}
+          ) : <p className="text-sm text-muted">{t.dashboard.bestContentDesc}</p>}
         </Card>
 
         <Card>
@@ -166,25 +168,29 @@ export default function DashboardPage() {
   );
 }
 
+type DashboardT = ReturnType<typeof useTranslation>["t"]["dashboard"];
+
 function NextAction({
   brandConfigured,
   instagramConnected,
   totalLeads,
   bestPost,
+  t,
 }: {
   brandConfigured: boolean;
   instagramConnected: boolean;
   totalLeads: number;
   bestPost: boolean;
+  t: DashboardT;
 }) {
   if (!brandConfigured) {
     return (
       <ActionContent
         icon={Settings}
-        title="Configura tu perfil de negocio"
-        description="Define nicho, audiencia y oferta para que todas las herramientas IA dejen de ser genéricas."
+        title={t.nextActionSetupTitle}
+        description={t.nextActionSetupDesc}
         href="/settings"
-        label="Completar perfil"
+        label={t.nextActionSetupLabel}
       />
     );
   }
@@ -193,10 +199,10 @@ function NextAction({
     return (
       <ActionContent
         icon={Instagram}
-        title="Conecta Instagram para datos reales"
-        description="Cuando Meta permita el acceso, WIA usará métricas, posts y audiencia para priorizar acciones."
+        title={t.nextActionInstagramTitle}
+        description={t.nextActionInstagramDesc}
         href="/settings"
-        label="Conectar Instagram"
+        label={t.nextActionInstagramLabel}
       />
     );
   }
@@ -205,10 +211,10 @@ function NextAction({
     return (
       <ActionContent
         icon={Users}
-        title="Crea tu primer lead cualificado"
-        description="Usa Audience Finder o CRM para convertir interés en una oportunidad comercial medible."
+        title={t.nextActionLeadsTitle}
+        description={t.nextActionLeadsDesc}
         href="/audience-finder"
-        label="Buscar seguidores potenciales"
+        label={t.nextActionLeadsLabel}
       />
     );
   }
@@ -217,10 +223,10 @@ function NextAction({
     return (
       <ActionContent
         icon={Calendar}
-        title="Registra contenido para medir"
-        description="Añade publicaciones o genera un calendario para que la IA detecte formatos ganadores."
+        title={t.nextActionPostTitle}
+        description={t.nextActionPostDesc}
         href="/calendar"
-        label="Crear calendario"
+        label={t.nextActionPostLabel}
       />
     );
   }
@@ -228,10 +234,10 @@ function NextAction({
   return (
     <ActionContent
       icon={Radar}
-      title="Ejecuta el Radar IA semanal"
-      description="Convierte tus datos en una prioridad clara: qué crear, a quién atraer y cómo convertir."
+      title={t.nextActionRadarTitle}
+      description={t.nextActionRadarDesc}
       href="/growth-radar"
-      label="Abrir Radar IA"
+      label={t.nextActionRadarLabel}
     />
   );
 }

@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Bot, Loader2, Send, Trash2, Sparkles } from "lucide-react";
+import { AlertTriangle, ArrowRight, Bot, Loader2, Send, Trash2, Sparkles } from "lucide-react";
+import Link from "next/link";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
@@ -14,6 +15,7 @@ import {
   sendCoachMessage,
   type CoachMessage,
 } from "@/lib/ai-client";
+import { fetchSettings } from "@/lib/db";
 import { cn } from "@/lib/utils";
 
 const QUICK_PROMPTS_ES = [
@@ -37,16 +39,21 @@ export default function AICoachPage() {
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
+  const [brandConfigured, setBrandConfigured] = useState(true);
   const bottomRef = useRef<HTMLDivElement>(null);
 
   const quickPrompts = locale === "es" ? QUICK_PROMPTS_ES : QUICK_PROMPTS_EN;
+  const es = locale === "es";
 
   useEffect(() => {
     if (!user) return;
-    fetchCoachMessages()
-      .then(setMessages)
-      .catch(() => setMessages([]))
-      .finally(() => setLoading(false));
+    Promise.all([
+      fetchCoachMessages().catch(() => []),
+      fetchSettings(user.id).catch(() => null),
+    ]).then(([msgs, settings]) => {
+      setMessages(msgs);
+      setBrandConfigured(Boolean(settings?.niche && settings?.targetAudience && settings?.offer));
+    }).finally(() => setLoading(false));
   }, [user]);
 
   useEffect(() => {
@@ -121,6 +128,26 @@ export default function AICoachPage() {
         }
       />
 
+      {!brandConfigured && (
+        <Card className="mb-4 border-amber-500/30 bg-amber-500/10 !py-3 !px-4">
+          <div className="flex items-center justify-between gap-3 text-sm">
+            <div className="flex items-center gap-2">
+              <AlertTriangle className="h-4 w-4 text-amber-400 shrink-0" />
+              <span className="text-amber-100">
+                {es
+                  ? "Sin perfil de marca el Coach dará consejos genéricos. Configura nicho, audiencia y oferta."
+                  : "Without a brand profile the Coach will give generic advice. Set up your niche, audience and offer."}
+              </span>
+            </div>
+            <Link href="/settings" className="shrink-0">
+              <Button variant="ghost" size="sm" className="text-amber-300 hover:text-amber-100">
+                {es ? "Configurar" : "Set up"}
+                <ArrowRight className="h-3 w-3" />
+              </Button>
+            </Link>
+          </div>
+        </Card>
+      )}
       <Card className="mb-4 border-lime/20 bg-lime/5 !py-3 !px-4">
         <div className="flex items-center gap-2 text-sm">
           <Sparkles className="h-4 w-4 text-lime shrink-0" />

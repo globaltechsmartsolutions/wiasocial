@@ -179,7 +179,7 @@ export async function fetchGrowthRadar() {
   return data as GrowthRadarResponse;
 }
 
-export async function generateGrowthRadar(locale = "es", force = false) {
+export async function generateGrowthRadar(locale = "es", force = false, manualMetrics?: { followers?: number; weeklyGain?: number; engagementRate?: number }) {
   const token = await getToken();
   const res = await fetch("/api/growth-radar", {
     method: "POST",
@@ -187,7 +187,7 @@ export async function generateGrowthRadar(locale = "es", force = false) {
       Authorization: `Bearer ${token}`,
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({ locale, force }),
+    body: JSON.stringify({ locale, force, manualMetrics }),
   });
   const data = await res.json();
   if (!res.ok) throw new Error(data.error || "Error al generar Radar IA");

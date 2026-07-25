@@ -66,7 +66,7 @@ export async function POST(request: Request) {
   const limited = await enforceUserRateLimit(request, user.id, "growth-radar", 10, 60 * 60 * 1000);
   if (limited) return limited;
 
-  const { locale = "es", force = false } = await request.json().catch(() => ({ locale: "es", force: false }));
+  const { locale = "es", force = false, manualMetrics } = await request.json().catch(() => ({ locale: "es", force: false, manualMetrics: undefined }));
   const reportWeek = getWeekStartDate();
   const sb = getSupabaseForUser(token);
 
@@ -92,12 +92,16 @@ export async function POST(request: Request) {
   const context = await buildUserAIContext(user.id, token);
   const lang = locale === "es" ? "Spanish" : "English";
 
+  const manualOverride = manualMetrics
+    ? `\n\nManual metrics provided by user (use these when Instagram data is unavailable): followers=${manualMetrics.followers ?? "unknown"}, weeklyFollowerGain=${manualMetrics.weeklyGain ?? "unknown"}, engagementRate=${manualMetrics.engagementRate !== undefined ? `${manualMetrics.engagementRate}%` : "unknown"}`
+    : "";
+
   const completion = await openai.chat.completions.create({
     model: "gpt-4o-mini",
     messages: [
       {
         role: "system",
-        content: `${RADAR_SYSTEM_PROMPT}\n\nRespond in ${lang}.`,
+        content: `${RADAR_SYSTEM_PROMPT}${manualOverride}\n\nRespond in ${lang}.`,
       },
       { role: "user", content: JSON.stringify({ reportWeek, context }) },
     ],

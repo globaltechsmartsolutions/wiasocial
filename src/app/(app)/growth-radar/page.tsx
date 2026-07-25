@@ -12,6 +12,7 @@ import {
   Loader2,
   Radar,
   RefreshCw,
+  Settings,
   Sparkles,
   Target,
   Zap,
@@ -20,9 +21,11 @@ import { PageHeader, EmptyState } from "@/components/ui/PageHeader";
 import { Card, CardHeader } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
 import { useTranslation } from "@/lib/i18n/LanguageProvider";
 import { useAuth } from "@/contexts/AuthContext";
 import { fetchGrowthRadar, generateGrowthRadar, type GrowthRadarResponse } from "@/lib/ai-client";
+import { fetchSettings } from "@/lib/db";
 import type { GrowthRadarPriority, GrowthRadarReport } from "@/types/growth-radar";
 import { cn, formatDate } from "@/lib/utils";
 
@@ -39,18 +42,35 @@ export default function GrowthRadarPage() {
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [brandConfigured, setBrandConfigured] = useState(true);
+  const [instagramConnected, setInstagramConnected] = useState(false);
+  const [manualFollowers, setManualFollowers] = useState("");
+  const [manualWeeklyGain, setManualWeeklyGain] = useState("");
+  const [manualEngagement, setManualEngagement] = useState("");
 
   const es = locale === "es";
   const report = response?.report ?? null;
+
+  const buildManualMetrics = () => ({
+    followers: manualFollowers ? Number(manualFollowers) : undefined,
+    weeklyGain: manualWeeklyGain ? Number(manualWeeklyGain) : undefined,
+    engagementRate: manualEngagement ? Number(manualEngagement) : undefined,
+  });
 
   const load = async () => {
     setError(null);
     setLoading(true);
     try {
-      const existing = await fetchGrowthRadar();
+      const [existing, settings] = await Promise.all([
+        fetchGrowthRadar(),
+        fetchSettings(user!.id),
+      ]);
+      const configured = Boolean(settings?.niche && settings?.targetAudience && settings?.offer);
+      setBrandConfigured(configured);
+      setInstagramConnected(Boolean(settings?.instagramHandle));
       if (existing.report) {
         setResponse(existing);
-      } else {
+      } else if (configured) {
         const generated = await generateGrowthRadar(locale);
         setResponse(generated);
       }
@@ -61,11 +81,11 @@ export default function GrowthRadarPage() {
     }
   };
 
-  const regenerate = async () => {
+  const regenerate = async (withManual = false) => {
     setError(null);
     setGenerating(true);
     try {
-      const generated = await generateGrowthRadar(locale, true);
+      const generated = await generateGrowthRadar(locale, true, withManual ? buildManualMetrics() : undefined);
       setResponse(generated);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Error");
@@ -98,7 +118,7 @@ export default function GrowthRadarPage() {
             : "Weekly recommendations based on your real Instagram, content and lead data."
         }
         action={
-          <Button onClick={regenerate} disabled={generating}>
+          <Button onClick={() => regenerate(false)} disabled={generating}>
             {generating ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
             {es ? "Regenerar" : "Regenerate"}
           </Button>
@@ -126,7 +146,78 @@ export default function GrowthRadarPage() {
         </Card>
       )}
 
-      {!report ? (
+      {brandConfigured && !instagramConnected && (
+        <Card className="mb-6 border-blue-500/20 bg-blue-500/5">
+          <div className="flex items-start gap-3 mb-4">
+            <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-blue-400" />
+            <div>
+              <p className="font-medium text-blue-300 text-sm">
+                {es ? "Instagram no conectado — introduce datos manualmente" : "Instagram not connected — enter data manually"}
+              </p>
+              <p className="mt-1 text-xs text-muted">
+                {es
+                  ? "Añade tus métricas actuales para que el Radar sea más preciso. Si las dejas vacías, el Radar usará solo tu perfil de marca."
+                  : "Add your current metrics so the Radar is more accurate. If left empty, the Radar will use only your brand profile."}
+              </p>
+            </div>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-3">
+            <Input
+              id="manual-followers"
+              label={es ? "Seguidores actuales" : "Current followers"}
+              type="number"
+              value={manualFollowers}
+              onChange={(e) => setManualFollowers(e.target.value)}
+              placeholder="ej. 2500"
+            />
+            <Input
+              id="manual-weekly-gain"
+              label={es ? "Ganancia semanal" : "Weekly gain"}
+              type="number"
+              value={manualWeeklyGain}
+              onChange={(e) => setManualWeeklyGain(e.target.value)}
+              placeholder="ej. 45"
+            />
+            <Input
+              id="manual-engagement"
+              label={es ? "Engagement rate (%)" : "Engagement rate (%)"}
+              type="number"
+              value={manualEngagement}
+              onChange={(e) => setManualEngagement(e.target.value)}
+              placeholder="ej. 4.2"
+            />
+          </div>
+          <Button
+            className="mt-4"
+            onClick={() => regenerate(true)}
+            disabled={generating}
+            variant="secondary"
+          >
+            {generating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+            {es ? "Generar Radar con estos datos" : "Generate Radar with this data"}
+          </Button>
+        </Card>
+      )}
+
+      {!brandConfigured ? (
+        <EmptyState
+          icon={<Radar className="h-7 w-7" />}
+          title={es ? "Configura tu perfil primero" : "Set up your profile first"}
+          description={
+            es
+              ? "El Radar IA necesita conocer tu nicho, audiencia y oferta para darte recomendaciones útiles. Sin ese contexto, los resultados serán genéricos."
+              : "The AI Radar needs to know your niche, audience and offer to give you useful recommendations. Without that context, results will be generic."
+          }
+          action={
+            <Link href="/settings">
+              <Button>
+                <Settings className="h-4 w-4" />
+                {es ? "Completar perfil de marca" : "Complete brand profile"}
+              </Button>
+            </Link>
+          }
+        />
+      ) : !report ? (
         <EmptyState
           icon={<Radar className="h-7 w-7" />}
           title={es ? "Todavia no hay Radar IA" : "No AI Radar yet"}
@@ -136,7 +227,7 @@ export default function GrowthRadarPage() {
               : "Generate your first radar to detect growth opportunities, risks and experiments."
           }
           action={
-            <Button onClick={regenerate} disabled={generating}>
+            <Button onClick={() => regenerate(!instagramConnected)} disabled={generating}>
               {generating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
               {es ? "Generar Radar" : "Generate Radar"}
             </Button>

@@ -29,20 +29,103 @@ import {
   Megaphone,
   Workflow,
   UserPlus,
+  ChevronDown,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useTranslation } from "@/lib/i18n/LanguageProvider";
+import { useState } from "react";
 
 interface SidebarProps {
   open: boolean;
   onClose: () => void;
 }
 
+interface NavItem {
+  name: string;
+  href: string;
+  icon: React.ElementType;
+}
+
+interface Section {
+  label: string | null;
+  items: NavItem[];
+  secondaryItems?: NavItem[];
+  secondaryLabel?: string;
+}
+
+function SectionNav({
+  section,
+  pathname,
+  onClose,
+}: {
+  section: Section;
+  pathname: string;
+  onClose: () => void;
+}) {
+  const hasActive =
+    section.secondaryItems?.some((i) => pathname === i.href) ?? false;
+  const [expanded, setExpanded] = useState(hasActive);
+
+  const renderItem = (item: NavItem) => {
+    const isActive = pathname === item.href;
+    return (
+      <Link
+        key={item.href}
+        href={item.href}
+        onClick={onClose}
+        className={cn(
+          "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all duration-200",
+          isActive
+            ? "bg-lime/10 text-lime border border-lime/20"
+            : "text-muted hover:bg-surface-elevated hover:text-foreground"
+        )}
+      >
+        <item.icon className="h-4 w-4 shrink-0" />
+        <span className="truncate">{item.name}</span>
+      </Link>
+    );
+  };
+
+  return (
+    <div>
+      {section.label && (
+        <p className="mb-2 px-3 text-[10px] font-semibold uppercase tracking-wider text-muted">
+          {section.label}
+        </p>
+      )}
+      <div className="space-y-0.5">
+        {section.items.map(renderItem)}
+        {section.secondaryItems && section.secondaryItems.length > 0 && (
+          <>
+            <button
+              onClick={() => setExpanded((v) => !v)}
+              className="flex w-full items-center gap-2 rounded-lg px-3 py-1.5 text-xs text-muted hover:text-foreground transition-colors"
+            >
+              <ChevronDown
+                className={cn(
+                  "h-3 w-3 transition-transform duration-200",
+                  expanded && "rotate-180"
+                )}
+              />
+              <span>{expanded ? "Ver menos" : "Ver más"}</span>
+            </button>
+            {expanded && (
+              <div className="space-y-0.5">
+                {section.secondaryItems.map(renderItem)}
+              </div>
+            )}
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export function Sidebar({ open, onClose }: SidebarProps) {
   const pathname = usePathname();
   const { t } = useTranslation();
 
-  const sections = [
+  const sections: Section[] = [
     {
       label: null,
       items: [
@@ -55,6 +138,8 @@ export function Sidebar({ open, onClose }: SidebarProps) {
         { name: t.nav.contentGenerator, href: "/content-generator", icon: Sparkles },
         { name: t.nav.reelScripts, href: "/reel-scripts", icon: Film },
         { name: t.nav.stories, href: "/stories", icon: CircleDot },
+      ],
+      secondaryItems: [
         { name: t.nav.contentSeries, href: "/content-series", icon: Layers },
         { name: t.nav.formats, href: "/formats", icon: BookOpen },
       ],
@@ -63,13 +148,15 @@ export function Sidebar({ open, onClose }: SidebarProps) {
       label: t.nav.sectionGrowth,
       items: [
         { name: t.nav.calendar, href: "/calendar", icon: Calendar },
-        { name: t.nav.hookAnalyzer, href: "/hook-analyzer", icon: Target },
-        { name: t.nav.hashtags, href: "/hashtags", icon: Hash },
         { name: t.nav.profileAudit, href: "/profile-audit", icon: UserCheck },
-        { name: t.nav.instagramAuditPro, href: "/instagram-audit-pro", icon: ClipboardCheck },
-        { name: t.nav.bestTimes, href: "/best-times", icon: Clock },
         { name: t.nav.instagramData, href: "/instagram-data", icon: Instagram },
         { name: t.nav.growthTracker, href: "/growth-tracker", icon: TrendingUp },
+      ],
+      secondaryItems: [
+        { name: t.nav.hookAnalyzer, href: "/hook-analyzer", icon: Target },
+        { name: t.nav.hashtags, href: "/hashtags", icon: Hash },
+        { name: t.nav.instagramAuditPro, href: "/instagram-audit-pro", icon: ClipboardCheck },
+        { name: t.nav.bestTimes, href: "/best-times", icon: Clock },
         { name: t.nav.competitors, href: "/competitors", icon: Swords },
       ],
     },
@@ -78,9 +165,11 @@ export function Sidebar({ open, onClose }: SidebarProps) {
       items: [
         { name: t.nav.growthRadar, href: "/growth-radar", icon: Radar },
         { name: t.nav.audienceFinder, href: "/audience-finder", icon: UserPlus },
+        { name: t.nav.aiCoach, href: "/ai-coach", icon: Bot },
+      ],
+      secondaryItems: [
         { name: t.nav.marketingPlan, href: "/marketing-plan", icon: Megaphone },
         { name: t.nav.funnelBuilder, href: "/funnel-builder", icon: Workflow },
-        { name: t.nav.aiCoach, href: "/ai-coach", icon: Bot },
       ],
     },
     {
@@ -131,34 +220,12 @@ export function Sidebar({ open, onClose }: SidebarProps) {
 
         <nav className="flex-1 overflow-y-auto p-4 space-y-4">
           {sections.map((section, si) => (
-            <div key={si}>
-              {section.label && (
-                <p className="mb-2 px-3 text-[10px] font-semibold uppercase tracking-wider text-muted">
-                  {section.label}
-                </p>
-              )}
-              <div className="space-y-0.5">
-                {section.items.map((item) => {
-                  const isActive = pathname === item.href;
-                  return (
-                    <Link
-                      key={item.href}
-                      href={item.href}
-                      onClick={onClose}
-                      className={cn(
-                        "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all duration-200",
-                        isActive
-                          ? "bg-lime/10 text-lime border border-lime/20"
-                          : "text-muted hover:bg-surface-elevated hover:text-foreground"
-                      )}
-                    >
-                      <item.icon className="h-4 w-4 shrink-0" />
-                      <span className="truncate">{item.name}</span>
-                    </Link>
-                  );
-                })}
-              </div>
-            </div>
+            <SectionNav
+              key={si}
+              section={section}
+              pathname={pathname}
+              onClose={onClose}
+            />
           ))}
         </nav>
 
