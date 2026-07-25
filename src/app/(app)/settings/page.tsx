@@ -1,7 +1,7 @@
 "use client";
 
 import { Suspense, type ReactNode, useEffect, useState } from "react";
-import { Settings, Save, Key, Database, Globe, Loader2, Webhook, CheckCircle2, Play } from "lucide-react";
+import { Settings, Save, Key, Database, Globe, Loader2, Webhook, CheckCircle2, Play, CreditCard, Zap, ExternalLink } from "lucide-react";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Card, CardHeader } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
@@ -15,7 +15,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { fetchSettings, saveSettings, fetchWebhookUrl, saveWebhookUrl } from "@/lib/db";
 import { countBrandMemoryFields, defaultBrandMemory } from "@/lib/brand-memory";
 import { isOpenAIConfigured } from "@/lib/openai";
-import { isSupabaseConfigured } from "@/lib/supabase";
+import { isSupabaseConfigured, getSupabase } from "@/lib/supabase";
 import { InstagramConnectCard } from "@/components/settings/InstagramConnectCard";
 import type { BrandMemory, ContentGoal, ContentTone, UserSettings } from "@/types";
 
@@ -143,10 +143,46 @@ export default function SettingsPage() {
   const [webhookTesting, setWebhookTesting] = useState(false);
   const [webhookTestSent, setWebhookTestSent] = useState(false);
 
+  const [planInfo, setPlanInfo] = useState<{ plan: string; hasSubscription: boolean } | null>(null);
+  const [portalLoading, setPortalLoading] = useState(false);
+
   useEffect(() => {
     if (!user) return;
     fetchWebhookUrl(user.id).then((url) => { if (url) setWebhookUrl(url); });
+    getSupabase().auth.getSession().then(({ data: { session } }) => {
+      if (!session) return;
+      fetch("/api/stripe/status", { headers: { Authorization: `Bearer ${session.access_token}` } })
+        .then((r) => r.json()).then(setPlanInfo).catch(() => null);
+    });
   }, [user]);
+
+  const handleManagePlan = async () => {
+    setPortalLoading(true);
+    try {
+      const { data: { session } } = await getSupabase().auth.getSession();
+      if (!session) return;
+      const res = await fetch("/api/stripe/portal", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      });
+      const data = await res.json();
+      if (data.url) window.location.href = data.url;
+    } finally {
+      setPortalLoading(false);
+    }
+  };
+
+  const handleUpgrade = async (plan: "starter" | "agency") => {
+    const { data: { session } } = await getSupabase().auth.getSession();
+    if (!session) return;
+    const res = await fetch("/api/stripe/checkout", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}` },
+      body: JSON.stringify({ plan }),
+    });
+    const data = await res.json();
+    if (data.url) window.location.href = data.url;
+  };
 
   const handleWebhookSave = async () => {
     if (!user) return;
@@ -270,6 +306,58 @@ export default function SettingsPage() {
               <p className="text-xs text-muted">
                 {locale === "es" ? "Eventos enviados: new_lead, lead_status_changed" : "Events sent: new_lead, lead_status_changed"}
               </p>
+            </div>
+          </Card>
+          <Card>
+            <CardHeader
+              title={locale === "es" ? "Plan y suscripción" : "Plan & subscription"}
+              description={locale === "es" ? "Gestiona tu plan y método de pago" : "Manage your plan and billing"}
+              action={<CreditCard className="h-5 w-5 text-lime" />}
+            />
+            <div className="space-y-4">
+              <div className="flex items-center justify-between rounded-xl border border-border bg-surface-elevated p-4">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-lg gradient-lime">
+                    <Zap className="h-4 w-4 text-black" />
+                  </div>
+                  <div>
+                    <p className="font-semibold text-foreground capitalize">
+                      {planInfo ? `Plan ${planInfo.plan}` : (locale === "es" ? "Plan Gratuito" : "Free Plan")}
+                    </p>
+                    <p className="text-xs text-muted">
+                      {planInfo?.plan === "free" || !planInfo
+                        ? (locale === "es" ? "5 generaciones IA / mes" : "5 AI generations / month")
+                        : (locale === "es" ? "Generaciones ilimitadas" : "Unlimited generations")}
+                    </p>
+                  </div>
+                </div>
+                {planInfo?.hasSubscription ? (
+                  <Button variant="secondary" size="sm" onClick={handleManagePlan} disabled={portalLoading}>
+                    {portalLoading ? <Loader2 className="h-3 w-3 animate-spin" /> : <ExternalLink className="h-3 w-3" />}
+                    {locale === "es" ? "Gestionar" : "Manage"}
+                  </Button>
+                ) : null}
+              </div>
+              {(!planInfo || planInfo.plan === "free") && (
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    onClick={() => handleUpgrade("starter")}
+                    className="rounded-xl border border-lime/30 bg-lime/5 p-4 text-left hover:bg-lime/10 transition-colors"
+                  >
+                    <p className="font-bold text-foreground">Starter</p>
+                    <p className="text-xl font-black text-lime">29€<span className="text-xs font-normal text-muted">/mes</span></p>
+                    <p className="mt-1 text-xs text-muted">{locale === "es" ? "IA ilimitada + todas las herramientas" : "Unlimited AI + all tools"}</p>
+                  </button>
+                  <button
+                    onClick={() => handleUpgrade("agency")}
+                    className="rounded-xl border border-border bg-surface-elevated p-4 text-left hover:bg-surface transition-colors"
+                  >
+                    <p className="font-bold text-foreground">Agency</p>
+                    <p className="text-xl font-black text-foreground">79€<span className="text-xs font-normal text-muted">/mes</span></p>
+                    <p className="mt-1 text-xs text-muted">{locale === "es" ? "Multi-cliente + CRM ilimitado" : "Multi-client + unlimited CRM"}</p>
+                  </button>
+                </div>
+              )}
             </div>
           </Card>
           <Card>
