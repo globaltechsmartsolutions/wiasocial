@@ -185,6 +185,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
         { name: t.nav.analytics, href: "/analytics", icon: BarChart3 },
         { name: t.nav.monthlyReport, href: "/monthly-report", icon: FileText },
         { name: t.nav.settings, href: "/settings", icon: Settings },
+        { name: "Upgrade", href: "/upgrade", icon: Zap },
       ],
     },
   ];
