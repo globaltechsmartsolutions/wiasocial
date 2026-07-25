@@ -39,6 +39,7 @@ export default function LeadsPage() {
   const [newLead, setNewLead] = useState({
     username: "", fullName: "", niche: "", source: "Instagram DM", notes: "", followUpDate: "",
   });
+  const [saveError, setSaveError] = useState("");
 
   const load = useCallback(async () => {
     if (!user) return;
@@ -70,18 +71,23 @@ export default function LeadsPage() {
 
   const handleAddLead = async () => {
     if (!user || !newLead.username) return;
-    const lead = await createLead(user.id, {
-      username: newLead.username.startsWith("@") ? newLead.username : `@${newLead.username}`,
-      fullName: newLead.fullName,
-      niche: newLead.niche,
-      source: newLead.source,
-      status: "new",
-      notes: newLead.notes,
-      followUpDate: newLead.followUpDate || null,
-    });
-    setLeads([lead, ...leads]);
-    setNewLead({ username: "", fullName: "", niche: "", source: "Instagram DM", notes: "", followUpDate: "" });
-    setShowAddForm(false);
+    setSaveError("");
+    try {
+      const lead = await createLead(user.id, {
+        username: newLead.username.startsWith("@") ? newLead.username : `@${newLead.username}`,
+        fullName: newLead.fullName,
+        niche: newLead.niche,
+        source: newLead.source,
+        status: "new",
+        notes: newLead.notes,
+        followUpDate: newLead.followUpDate || null,
+      });
+      setLeads([lead, ...leads]);
+      setNewLead({ username: "", fullName: "", niche: "", source: "Instagram DM", notes: "", followUpDate: "" });
+      setShowAddForm(false);
+    } catch (e) {
+      setSaveError(e instanceof Error ? e.message : "Error al guardar el lead");
+    }
   };
 
   const handleStatusChange = async (id: string, status: LeadStatus) => {
@@ -137,9 +143,10 @@ export default function LeadsPage() {
             <Input id="followUpDate" label={t.leads.followUpDate} type="date" value={newLead.followUpDate} onChange={(e) => setNewLead({ ...newLead, followUpDate: e.target.value })} />
             <Textarea id="notes" label={t.leads.notes} value={newLead.notes} onChange={(e) => setNewLead({ ...newLead, notes: e.target.value })} rows={1} />
           </div>
+          {saveError && <p className="mt-3 text-sm text-red-400">{saveError}</p>}
           <div className="mt-4 flex gap-2">
             <Button onClick={handleAddLead}>{t.leads.saveLead}</Button>
-            <Button variant="ghost" onClick={() => setShowAddForm(false)}>{t.common.cancel}</Button>
+            <Button variant="ghost" onClick={() => { setShowAddForm(false); setSaveError(""); }}>{t.common.cancel}</Button>
           </div>
         </Card>
       )}

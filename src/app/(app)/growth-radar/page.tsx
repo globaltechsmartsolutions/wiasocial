@@ -26,6 +26,7 @@ import { useTranslation } from "@/lib/i18n/LanguageProvider";
 import { useAuth } from "@/contexts/AuthContext";
 import { fetchGrowthRadar, generateGrowthRadar, type GrowthRadarResponse } from "@/lib/ai-client";
 import { fetchSettings } from "@/lib/db";
+import { fetchInstagramConnection } from "@/lib/instagram-client";
 import type { GrowthRadarPriority, GrowthRadarReport } from "@/types/growth-radar";
 import { cn, formatDate } from "@/lib/utils";
 
@@ -36,7 +37,7 @@ const priorityClasses: Record<GrowthRadarPriority, string> = {
 };
 
 export default function GrowthRadarPage() {
-  const { locale } = useTranslation();
+  const { locale, t } = useTranslation();
   const { user } = useAuth();
   const [response, setResponse] = useState<GrowthRadarResponse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -48,7 +49,6 @@ export default function GrowthRadarPage() {
   const [manualWeeklyGain, setManualWeeklyGain] = useState("");
   const [manualEngagement, setManualEngagement] = useState("");
 
-  const es = locale === "es";
   const report = response?.report ?? null;
 
   const buildManualMetrics = () => ({
@@ -61,13 +61,14 @@ export default function GrowthRadarPage() {
     setError(null);
     setLoading(true);
     try {
-      const [existing, settings] = await Promise.all([
+      const [existing, settings, instagram] = await Promise.all([
         fetchGrowthRadar(),
         fetchSettings(user!.id),
+        fetchInstagramConnection().catch(() => null),
       ]);
       const configured = Boolean(settings?.niche && settings?.targetAudience && settings?.offer);
       setBrandConfigured(configured);
-      setInstagramConnected(Boolean(settings?.instagramHandle));
+      setInstagramConnected(Boolean(instagram));
       if (existing.report) {
         setResponse(existing);
       } else if (configured) {
@@ -111,16 +112,12 @@ export default function GrowthRadarPage() {
   return (
     <div>
       <PageHeader
-        title={es ? "Radar IA de Crecimiento" : "AI Growth Radar"}
-        description={
-          es
-            ? "Recomendaciones semanales basadas en tus datos reales de Instagram, contenido y leads."
-            : "Weekly recommendations based on your real Instagram, content and lead data."
-        }
+        title={t.growthRadarPage.title}
+        description={t.growthRadarPage.description}
         action={
           <Button onClick={() => regenerate(false)} disabled={generating}>
             {generating ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
-            {es ? "Regenerar" : "Regenerate"}
+            {t.growthRadarPage.regenerate}
           </Button>
         }
       />
@@ -130,7 +127,7 @@ export default function GrowthRadarPage() {
           <div className="flex items-start gap-3">
             <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-red-400" />
             <div>
-              <p className="font-medium text-red-300">{es ? "No pude generar el Radar" : "Could not generate Radar"}</p>
+              <p className="font-medium text-red-300">{t.growthRadarPage.couldNotGenerate}</p>
               <p className="mt-1 text-sm text-muted">{error}</p>
             </div>
           </div>
@@ -151,50 +148,18 @@ export default function GrowthRadarPage() {
           <div className="flex items-start gap-3 mb-4">
             <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-blue-400" />
             <div>
-              <p className="font-medium text-blue-300 text-sm">
-                {es ? "Instagram no conectado — introduce datos manualmente" : "Instagram not connected — enter data manually"}
-              </p>
-              <p className="mt-1 text-xs text-muted">
-                {es
-                  ? "Añade tus métricas actuales para que el Radar sea más preciso. Si las dejas vacías, el Radar usará solo tu perfil de marca."
-                  : "Add your current metrics so the Radar is more accurate. If left empty, the Radar will use only your brand profile."}
-              </p>
+              <p className="font-medium text-blue-300 text-sm">{t.growthRadarPage.manualDataTitle}</p>
+              <p className="mt-1 text-xs text-muted">{t.growthRadarPage.manualDataDesc}</p>
             </div>
           </div>
           <div className="grid gap-3 sm:grid-cols-3">
-            <Input
-              id="manual-followers"
-              label={es ? "Seguidores actuales" : "Current followers"}
-              type="number"
-              value={manualFollowers}
-              onChange={(e) => setManualFollowers(e.target.value)}
-              placeholder="ej. 2500"
-            />
-            <Input
-              id="manual-weekly-gain"
-              label={es ? "Ganancia semanal" : "Weekly gain"}
-              type="number"
-              value={manualWeeklyGain}
-              onChange={(e) => setManualWeeklyGain(e.target.value)}
-              placeholder="ej. 45"
-            />
-            <Input
-              id="manual-engagement"
-              label={es ? "Engagement rate (%)" : "Engagement rate (%)"}
-              type="number"
-              value={manualEngagement}
-              onChange={(e) => setManualEngagement(e.target.value)}
-              placeholder="ej. 4.2"
-            />
+            <Input id="manual-followers" label={t.growthRadarPage.currentFollowers} type="number" value={manualFollowers} onChange={(e) => setManualFollowers(e.target.value)} placeholder="ej. 2500" />
+            <Input id="manual-weekly-gain" label={t.growthRadarPage.weeklyGain} type="number" value={manualWeeklyGain} onChange={(e) => setManualWeeklyGain(e.target.value)} placeholder="ej. 45" />
+            <Input id="manual-engagement" label={t.growthRadarPage.engagementRate} type="number" value={manualEngagement} onChange={(e) => setManualEngagement(e.target.value)} placeholder="ej. 4.2" />
           </div>
-          <Button
-            className="mt-4"
-            onClick={() => regenerate(true)}
-            disabled={generating}
-            variant="secondary"
-          >
+          <Button className="mt-4" onClick={() => regenerate(true)} disabled={generating} variant="secondary">
             {generating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-            {es ? "Generar Radar con estos datos" : "Generate Radar with this data"}
+            {t.growthRadarPage.generateWithData}
           </Button>
         </Card>
       )}
@@ -202,17 +167,13 @@ export default function GrowthRadarPage() {
       {!brandConfigured ? (
         <EmptyState
           icon={<Radar className="h-7 w-7" />}
-          title={es ? "Configura tu perfil primero" : "Set up your profile first"}
-          description={
-            es
-              ? "El Radar IA necesita conocer tu nicho, audiencia y oferta para darte recomendaciones útiles. Sin ese contexto, los resultados serán genéricos."
-              : "The AI Radar needs to know your niche, audience and offer to give you useful recommendations. Without that context, results will be generic."
-          }
+          title={t.growthRadarPage.setupRequired}
+          description={t.growthRadarPage.setupRequiredDesc}
           action={
             <Link href="/settings">
               <Button>
                 <Settings className="h-4 w-4" />
-                {es ? "Completar perfil de marca" : "Complete brand profile"}
+                {t.growthRadarPage.completeBrandProfile}
               </Button>
             </Link>
           }
@@ -220,29 +181,25 @@ export default function GrowthRadarPage() {
       ) : !report ? (
         <EmptyState
           icon={<Radar className="h-7 w-7" />}
-          title={es ? "Todavia no hay Radar IA" : "No AI Radar yet"}
-          description={
-            es
-              ? "Genera tu primer radar para detectar oportunidades, riesgos y experimentos de crecimiento."
-              : "Generate your first radar to detect growth opportunities, risks and experiments."
-          }
+          title={t.growthRadarPage.noRadar}
+          description={t.growthRadarPage.noRadarDesc}
           action={
             <Button onClick={() => regenerate(!instagramConnected)} disabled={generating}>
               {generating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-              {es ? "Generar Radar" : "Generate Radar"}
+              {t.growthRadarPage.generateRadar}
             </Button>
           }
         />
       ) : (
-        <RadarReport report={report} reportWeek={response?.reportWeek ?? null} locale={locale} />
+        <RadarReport report={report} reportWeek={response?.reportWeek ?? null} locale={locale} t={t.growthRadarPage} />
       )}
     </div>
   );
 }
 
-function RadarReport({ report, reportWeek, locale }: { report: GrowthRadarReport; reportWeek: string | null; locale: string }) {
-  const es = locale === "es";
+type RadarT = ReturnType<typeof useTranslation>["t"]["growthRadarPage"];
 
+function RadarReport({ report, reportWeek, locale, t }: { report: GrowthRadarReport; reportWeek: string | null; locale: string; t: RadarT }) {
   return (
     <div className="space-y-6">
       <div className="grid gap-6 lg:grid-cols-[0.8fr_1.2fr]">
@@ -252,11 +209,11 @@ function RadarReport({ report, reportWeek, locale }: { report: GrowthRadarReport
             <p className="text-5xl font-bold text-lime">{report.opportunityScore}</p>
           </div>
           <p className="mt-4 text-xs font-semibold uppercase tracking-wider text-muted">
-            {es ? "Score de oportunidad" : "Opportunity score"}
+            {t.opportunityScore}
           </p>
           {reportWeek && (
             <p className="mt-1 text-xs text-muted">
-              {es ? "Semana de" : "Week of"} {formatDate(reportWeek, locale)}
+              {t.weekOf} {formatDate(reportWeek, locale)}
             </p>
           )}
         </Card>
@@ -264,16 +221,12 @@ function RadarReport({ report, reportWeek, locale }: { report: GrowthRadarReport
         <Card glow>
           <div className="flex items-center gap-2">
             <Sparkles className="h-5 w-5 text-lime" />
-            <p className="text-xs font-semibold uppercase tracking-wider text-lime">
-              {es ? "Diagnostico IA" : "AI Diagnosis"}
-            </p>
+            <p className="text-xs font-semibold uppercase tracking-wider text-lime">{t.aiDiagnosis}</p>
           </div>
           <h2 className="mt-3 text-2xl font-bold">{report.headline}</h2>
           <p className="mt-3 text-sm leading-relaxed text-muted">{report.executiveSummary}</p>
           <div className="mt-5 rounded-lg border border-lime/20 bg-lime/5 p-4">
-            <p className="text-xs font-semibold uppercase tracking-wider text-lime">
-              {es ? "Mayor oportunidad" : "Biggest opportunity"}
-            </p>
+            <p className="text-xs font-semibold uppercase tracking-wider text-lime">{t.biggestOpportunity}</p>
             <p className="mt-2 text-sm font-medium">{report.biggestOpportunity}</p>
           </div>
         </Card>
@@ -293,7 +246,7 @@ function RadarReport({ report, reportWeek, locale }: { report: GrowthRadarReport
       </div>
 
       <Card>
-        <CardHeader title={es ? "Recomendaciones priorizadas" : "Prioritized recommendations"} />
+        <CardHeader title={t.recommendations} />
         <div className="grid gap-4 lg:grid-cols-3">
           {report.recommendations.slice(0, 3).map((rec) => (
             <div key={rec.title} className="rounded-lg border border-border bg-surface-elevated p-4">
@@ -312,7 +265,7 @@ function RadarReport({ report, reportWeek, locale }: { report: GrowthRadarReport
 
       <div className="grid gap-6 lg:grid-cols-2">
         <Card>
-          <CardHeader title={es ? "Experimentos de la semana" : "Weekly experiments"} action={<FlaskConical className="h-5 w-5 text-lime" />} />
+          <CardHeader title={t.experiments} action={<FlaskConical className="h-5 w-5 text-lime" />} />
           <div className="space-y-4">
             {report.experiments.slice(0, 3).map((experiment) => (
               <div key={experiment.name} className="rounded-lg bg-surface-elevated p-4">
@@ -333,7 +286,7 @@ function RadarReport({ report, reportWeek, locale }: { report: GrowthRadarReport
         </Card>
 
         <Card>
-          <CardHeader title={es ? "Plan de contenido recomendado" : "Recommended content plan"} action={<Lightbulb className="h-5 w-5 text-lime" />} />
+          <CardHeader title={t.contentPlan} action={<Lightbulb className="h-5 w-5 text-lime" />} />
           <div className="rounded-lg border border-lime/20 bg-lime/5 p-4">
             <Badge className="bg-lime/20 text-lime border-lime/30">{report.contentPlan.format}</Badge>
             <h3 className="mt-3 text-lg font-semibold">{report.contentPlan.topic}</h3>
@@ -345,14 +298,14 @@ function RadarReport({ report, reportWeek, locale }: { report: GrowthRadarReport
             <div className="rounded-lg bg-surface-elevated p-4">
               <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-muted">
                 <Zap className="h-3 w-3 text-lime" />
-                {es ? "Play de engagement" : "Engagement play"}
+                {t.engagementPlay}
               </p>
               <p className="mt-2 text-sm">{report.engagementPlay}</p>
             </div>
             <div className="rounded-lg bg-surface-elevated p-4">
               <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-muted">
                 <CheckCircle2 className="h-3 w-3 text-lime" />
-                {es ? "Play de leads" : "Lead play"}
+                {t.leadPlay}
               </p>
               <p className="mt-2 text-sm">{report.leadPlay}</p>
             </div>
@@ -362,7 +315,7 @@ function RadarReport({ report, reportWeek, locale }: { report: GrowthRadarReport
 
       {report.riskAlerts.length > 0 && (
         <Card className="border-amber-500/20 bg-amber-500/5">
-          <CardHeader title={es ? "Riesgos a vigilar" : "Risks to watch"} action={<AlertTriangle className="h-5 w-5 text-amber-400" />} />
+          <CardHeader title={t.risks} action={<AlertTriangle className="h-5 w-5 text-amber-400" />} />
           <div className="grid gap-2 sm:grid-cols-2">
             {report.riskAlerts.map((alert) => (
               <div key={alert} className="rounded-lg border border-amber-500/20 bg-surface-elevated p-3 text-sm">
@@ -375,7 +328,7 @@ function RadarReport({ report, reportWeek, locale }: { report: GrowthRadarReport
 
       <Link href="/ai-coach" className="block">
         <Button variant="secondary" className="w-full">
-          {es ? "Preguntar al Coach sobre este Radar" : "Ask the Coach about this Radar"}
+          {t.askCoach}
           <ArrowRight className="h-4 w-4" />
         </Button>
       </Link>

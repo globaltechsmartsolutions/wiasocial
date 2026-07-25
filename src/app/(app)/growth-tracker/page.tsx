@@ -94,15 +94,8 @@ export default function GrowthTrackerPage() {
           <p className="text-sm text-muted py-8 text-center">Registra tus seguidores actuales desde Instagram para empezar a trackear</p>
         ) : (
           <>
-            <div className="mb-6 flex items-end gap-2 h-40">
-              {snapshots.map((s) => (
-                <div key={s.id} className="flex flex-1 flex-col items-center gap-1">
-                  <div className="w-full rounded-t gradient-lime min-h-[4px]" style={{ height: `${(s.followers / maxFollowers) * 100}%` }} />
-                  <span className="text-[10px] text-muted">{formatDate(s.date, locale).split(" ")[0]}</span>
-                  <span className="text-xs font-bold text-lime">{s.followers}</span>
-                </div>
-              ))}
-            </div>
+            <FollowerChart snapshots={snapshots} locale={locale} />
+            <div className="mb-2" />
             <div className="space-y-2">
               {[...snapshots].reverse().map((s) => (
                 <div key={s.id} className="flex items-center justify-between rounded-lg bg-surface-elevated p-3 text-sm">
@@ -115,6 +108,84 @@ export default function GrowthTrackerPage() {
           </>
         )}
       </Card>
+    </div>
+  );
+}
+
+function FollowerChart({
+  snapshots,
+  locale,
+}: {
+  snapshots: { id: string; date: string; followers: number; gained: number }[];
+  locale: string;
+}) {
+  if (snapshots.length < 2) {
+    return (
+      <div className="mb-6 flex items-end gap-2 h-40">
+        {snapshots.map((s) => {
+          const maxF = Math.max(...snapshots.map((x) => x.followers), 1);
+          return (
+            <div key={s.id} className="flex flex-1 flex-col items-center gap-1">
+              <div className="w-full rounded-t gradient-lime min-h-[4px]" style={{ height: `${(s.followers / maxF) * 100}%` }} />
+              <span className="text-[10px] text-muted">{formatDate(s.date, locale).split(" ")[0]}</span>
+              <span className="text-xs font-bold text-lime">{s.followers.toLocaleString()}</span>
+            </div>
+          );
+        })}
+      </div>
+    );
+  }
+
+  const W = 600;
+  const H = 160;
+  const PAD = { top: 16, right: 16, bottom: 36, left: 48 };
+  const chartW = W - PAD.left - PAD.right;
+  const chartH = H - PAD.top - PAD.bottom;
+
+  const minF = Math.min(...snapshots.map((s) => s.followers));
+  const maxF = Math.max(...snapshots.map((s) => s.followers));
+  const range = maxF - minF || 1;
+
+  const toX = (i: number) => PAD.left + (i / (snapshots.length - 1)) * chartW;
+  const toY = (f: number) => PAD.top + chartH - ((f - minF) / range) * chartH;
+
+  const points = snapshots.map((s, i) => ({ x: toX(i), y: toY(s.followers), s }));
+  const linePath = points.map((p, i) => `${i === 0 ? "M" : "L"}${p.x},${p.y}`).join(" ");
+  const areaPath = `${linePath} L${points[points.length - 1].x},${PAD.top + chartH} L${points[0].x},${PAD.top + chartH} Z`;
+
+  const yTicks = [minF, Math.round((minF + maxF) / 2), maxF];
+
+  return (
+    <div className="mb-6 w-full overflow-hidden">
+      <svg viewBox={`0 0 ${W} ${H}`} className="w-full" preserveAspectRatio="none" style={{ height: "160px" }}>
+        <defs>
+          <linearGradient id="chartGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="#a3e635" stopOpacity="0.25" />
+            <stop offset="100%" stopColor="#a3e635" stopOpacity="0" />
+          </linearGradient>
+        </defs>
+
+        {yTicks.map((v) => (
+          <g key={v}>
+            <line x1={PAD.left} x2={W - PAD.right} y1={toY(v)} y2={toY(v)} stroke="currentColor" strokeOpacity="0.08" strokeWidth="1" />
+            <text x={PAD.left - 6} y={toY(v)} textAnchor="end" dominantBaseline="middle" fontSize="10" fill="currentColor" fillOpacity="0.4">
+              {v >= 1000 ? `${(v / 1000).toFixed(1)}k` : v}
+            </text>
+          </g>
+        ))}
+
+        <path d={areaPath} fill="url(#chartGrad)" />
+        <path d={linePath} fill="none" stroke="#a3e635" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+
+        {points.map((p, i) => (
+          <g key={p.s.id}>
+            <circle cx={p.x} cy={p.y} r="4" fill="#a3e635" />
+            <text x={p.x} y={H - 4} textAnchor="middle" fontSize="9" fill="currentColor" fillOpacity="0.5">
+              {formatDate(p.s.date, locale).split(" ")[0]}
+            </text>
+          </g>
+        ))}
+      </svg>
     </div>
   );
 }

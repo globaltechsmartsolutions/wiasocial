@@ -103,7 +103,7 @@ export default function DashboardPage() {
         <StatCard title={t.dashboard.totalLeads} value={totalLeads} icon={Users} trendUp />
         <StatCard title={t.dashboard.callsBooked} value={callsBooked} icon={Phone} trendUp />
         <StatCard title={t.dashboard.activeClients} value={clients} icon={TrendingUp} />
-        <StatCard title={t.dashboard.followersThisWeek} value={`+${weekGain}`} icon={TrendingUp} trend={`+${weekGain}`} trendUp />
+        <StatCard title={t.dashboard.followersThisWeek} value={weekGain >= 0 ? `+${weekGain}` : `${weekGain}`} icon={TrendingUp} trend={`+${weekGain}`} trendUp={weekGain >= 0} />
         <StatCard title={t.dashboard.followUpsToday} value={followUpsToday.length} icon={Calendar} />
       </div>
 
