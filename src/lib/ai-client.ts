@@ -281,3 +281,51 @@ export async function generateAudienceFinder(
   if (!res.ok) throw new Error(data.error || "Error al generar Audience Finder");
   return data as AudienceFinderResponse;
 }
+
+// ── Trend Detector ────────────────────────────────────────────────────────────
+
+export async function fetchTrendDetector() {
+  const token = await getToken();
+  const res = await fetch("/api/trend-detector", {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || "Error");
+  return data as { result: unknown; createdAt: string | null };
+}
+
+export async function generateTrendDetector(locale = "es") {
+  const token = await getToken();
+  const res = await fetch("/api/trend-detector", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+    body: JSON.stringify({ locale }),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || "Error");
+  return data as { result: unknown; createdAt: string };
+}
+
+// ── Monthly Report ────────────────────────────────────────────────────────────
+
+export async function fetchMonthlyReport() {
+  const token = await getToken();
+  const res = await fetch("/api/monthly-report", {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || "Error");
+  return data as { report: unknown; monthKey: string; createdAt: string | null };
+}
+
+export async function generateMonthlyReport(locale = "es") {
+  const token = await getToken();
+  const res = await fetch("/api/monthly-report", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+    body: JSON.stringify({ locale }),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || "Error");
+  return data as { report: unknown; monthKey: string; createdAt: string };
+}

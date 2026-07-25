@@ -522,3 +522,106 @@ export async function fetchLeadAIScores(userId: string) {
     },
   ]));
 }
+
+// ── Clients (agency multi-client) ─────────────────────────────────────────────
+
+export interface Client {
+  id: string;
+  brandName: string;
+  instagramHandle: string;
+  niche: string;
+  monthlyFee: number;
+  status: "active" | "paused" | "churned";
+  notes: string;
+  createdAt: string;
+}
+
+export async function fetchClients(userId: string): Promise<Client[]> {
+  const { data, error } = await getSupabase()
+    .from("clients")
+    .select("*")
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  return (data ?? []).map((r) => ({
+    id: r.id as string,
+    brandName: r.brand_name as string,
+    instagramHandle: r.instagram_handle as string,
+    niche: r.niche as string,
+    monthlyFee: (r.monthly_fee as number) ?? 0,
+    status: (r.status as Client["status"]) ?? "active",
+    notes: (r.notes as string) ?? "",
+    createdAt: (r.created_at as string).split("T")[0],
+  }));
+}
+
+export async function createClient(
+  userId: string,
+  client: Omit<Client, "id" | "createdAt">
+): Promise<Client> {
+  const { data, error } = await getSupabase()
+    .from("clients")
+    .insert({
+      user_id: userId,
+      brand_name: client.brandName,
+      instagram_handle: client.instagramHandle,
+      niche: client.niche,
+      monthly_fee: client.monthlyFee,
+      status: client.status,
+      notes: client.notes,
+    })
+    .select()
+    .single();
+  if (error) throw error;
+  return {
+    id: data.id as string,
+    brandName: data.brand_name as string,
+    instagramHandle: data.instagram_handle as string,
+    niche: data.niche as string,
+    monthlyFee: (data.monthly_fee as number) ?? 0,
+    status: (data.status as Client["status"]) ?? "active",
+    notes: (data.notes as string) ?? "",
+    createdAt: (data.created_at as string).split("T")[0],
+  };
+}
+
+export async function updateClientStatus(id: string, status: Client["status"]) {
+  const { error } = await getSupabase()
+    .from("clients")
+    .update({ status })
+    .eq("id", id);
+  if (error) throw error;
+}
+
+export async function deleteClient(id: string) {
+  const { error } = await getSupabase().from("clients").delete().eq("id", id);
+  if (error) throw error;
+}
+
+// ── Webhook settings ──────────────────────────────────────────────────────────
+
+export async function fetchWebhookUrl(userId: string): Promise<string | null> {
+  const { data } = await getSupabase()
+    .from("user_settings")
+    .select("webhook_url")
+    .eq("user_id", userId)
+    .single();
+  return (data?.webhook_url as string | null) ?? null;
+}
+
+export async function saveWebhookUrl(userId: string, url: string) {
+  const { error } = await getSupabase()
+    .from("user_settings")
+    .upsert({ user_id: userId, webhook_url: url }, { onConflict: "user_id" });
+  if (error) throw error;
+}
+
+// ── Lead revenue tracking ─────────────────────────────────────────────────────
+
+export async function updateLeadRevenue(id: string, dealValue: number) {
+  const { error } = await getSupabase()
+    .from("leads")
+    .update({ deal_value: dealValue })
+    .eq("id", id);
+  if (error) throw error;
+}

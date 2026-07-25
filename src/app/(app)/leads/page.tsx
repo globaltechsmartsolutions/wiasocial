@@ -85,6 +85,12 @@ export default function LeadsPage() {
       setLeads([lead, ...leads]);
       setNewLead({ username: "", fullName: "", niche: "", source: "Instagram DM", notes: "", followUpDate: "" });
       setShowAddForm(false);
+      // Fire webhook in background (non-blocking)
+      fetch("/api/webhooks", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ event: "new_lead", payload: { id: lead.id, username: lead.username, niche: lead.niche, source: lead.source } }),
+      }).catch(() => {});
     } catch (e) {
       setSaveError(e instanceof Error ? e.message : "Error al guardar el lead");
     }
@@ -93,6 +99,12 @@ export default function LeadsPage() {
   const handleStatusChange = async (id: string, status: LeadStatus) => {
     await updateLeadStatus(id, status);
     setLeads(leads.map((l) => (l.id === id ? { ...l, status } : l)));
+    const lead = leads.find((l) => l.id === id);
+    fetch("/api/webhooks", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ event: "lead_status_changed", payload: { id, username: lead?.username, previousStatus: lead?.status, newStatus: status } }),
+    }).catch(() => {});
   };
 
   const handleLeadIQ = async (lead: Lead) => {

@@ -1,7 +1,7 @@
 "use client";
 
 import { Suspense, useEffect, useState } from "react";
-import { Users, Phone, TrendingUp, Calendar, Lightbulb, ArrowRight, Target, Hash, UserCheck, Clock, Layers, Loader2, Megaphone, Workflow, CheckCircle2, Settings, Instagram, Radar } from "lucide-react";
+import { Users, Phone, TrendingUp, Calendar, Lightbulb, ArrowRight, Target, Hash, UserCheck, Clock, Layers, Loader2, Megaphone, Workflow, CheckCircle2, Settings, Instagram, Radar, AlertTriangle, Flame, FileText, Building2 } from "lucide-react";
 import Link from "next/link";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { StatCard } from "@/components/ui/StatCard";
@@ -31,6 +31,7 @@ export default function DashboardPage() {
   const [brandConfigured, setBrandConfigured] = useState(false);
   const [instagramConnected, setInstagramConnected] = useState(false);
   const [radarGenerated, setRadarGenerated] = useState(false);
+  const [staleLeads, setStaleLeads] = useState<{ username: string; fullName: string; daysAgo: number }[]>([]);
 
   useEffect(() => {
     if (!user) return;
@@ -56,6 +57,18 @@ export default function DashboardPage() {
       setBrandConfigured(Boolean(settings?.niche && settings?.targetAudience && settings?.offer));
       setInstagramConnected(Boolean(instagram));
       setRadarGenerated(Boolean(radar?.report));
+      const now = new Date();
+      const stale = leads
+        .filter((l) => l.status !== "client" && l.status !== "call_booked")
+        .map((l) => {
+          const created = new Date(l.createdAt);
+          const daysAgo = Math.floor((now.getTime() - created.getTime()) / 86400000);
+          return { username: l.username, fullName: l.fullName, daysAgo };
+        })
+        .filter((l) => l.daysAgo >= 7)
+        .sort((a, b) => b.daysAgo - a.daysAgo)
+        .slice(0, 5);
+      setStaleLeads(stale);
       setLoading(false);
     })();
   }, [user]);
@@ -145,11 +158,42 @@ export default function DashboardPage() {
         </Card>
       </div>
 
+      {staleLeads.length > 0 && (
+        <Card className="mt-6 border-amber-500/20 bg-amber-500/5">
+          <CardHeader
+            title={t.staleLeads.title}
+            description={t.staleLeads.description}
+            action={<AlertTriangle className="h-5 w-5 text-amber-400" />}
+          />
+          <div className="space-y-2">
+            {staleLeads.map((lead) => (
+              <div key={lead.username} className="flex items-center justify-between rounded-lg border border-amber-500/20 bg-surface-elevated p-3">
+                <div>
+                  <p className="text-sm font-medium">{lead.username}</p>
+                  {lead.fullName && <p className="text-xs text-muted">{lead.fullName}</p>}
+                </div>
+                <Badge className="bg-amber-500/20 text-amber-400 border-amber-500/30 text-xs">
+                  {lead.daysAgo} {t.staleLeads.daysStale}
+                </Badge>
+              </div>
+            ))}
+          </div>
+          <Link href="/leads" className="mt-4 block">
+            <Button variant="secondary" size="sm" className="w-full">
+              {t.staleLeads.followUp}<ArrowRight className="h-3 w-3" />
+            </Button>
+          </Link>
+        </Card>
+      )}
+
       <Card className="mt-6">
         <CardHeader title={t.dashboard.growthTools} description={t.dashboard.growthToolsDesc} />
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {[
             { href: "/calendar", icon: Calendar, label: t.nav.calendar },
+            { href: "/trend-detector", icon: Flame, label: t.nav.trendDetector },
+            { href: "/clients", icon: Building2, label: t.nav.clients },
+            { href: "/monthly-report", icon: FileText, label: t.nav.monthlyReport },
             { href: "/hook-analyzer", icon: Target, label: t.nav.hookAnalyzer },
             { href: "/hashtags", icon: Hash, label: t.nav.hashtags },
             { href: "/profile-audit", icon: UserCheck, label: t.nav.profileAudit },

@@ -1,7 +1,7 @@
 "use client";
 
 import { Suspense, type ReactNode, useEffect, useState } from "react";
-import { Settings, Save, Key, Database, Globe, Loader2 } from "lucide-react";
+import { Settings, Save, Key, Database, Globe, Loader2, Webhook, CheckCircle2, Play } from "lucide-react";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Card, CardHeader } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
@@ -12,7 +12,7 @@ import { Badge } from "@/components/ui/Badge";
 import { LanguageToggle } from "@/components/ui/LanguageToggle";
 import { useTranslation } from "@/lib/i18n/LanguageProvider";
 import { useAuth } from "@/contexts/AuthContext";
-import { fetchSettings, saveSettings } from "@/lib/db";
+import { fetchSettings, saveSettings, fetchWebhookUrl, saveWebhookUrl } from "@/lib/db";
 import { countBrandMemoryFields, defaultBrandMemory } from "@/lib/brand-memory";
 import { isOpenAIConfigured } from "@/lib/openai";
 import { isSupabaseConfigured } from "@/lib/supabase";
@@ -137,6 +137,44 @@ export default function SettingsPage() {
   const openaiOk = isOpenAIConfigured();
   const supabaseOk = isSupabaseConfigured();
 
+  const [webhookUrl, setWebhookUrl] = useState("");
+  const [webhookSaving, setWebhookSaving] = useState(false);
+  const [webhookSaved, setWebhookSaved] = useState(false);
+  const [webhookTesting, setWebhookTesting] = useState(false);
+  const [webhookTestSent, setWebhookTestSent] = useState(false);
+
+  useEffect(() => {
+    if (!user) return;
+    fetchWebhookUrl(user.id).then((url) => { if (url) setWebhookUrl(url); });
+  }, [user]);
+
+  const handleWebhookSave = async () => {
+    if (!user) return;
+    setWebhookSaving(true);
+    try {
+      await saveWebhookUrl(user.id, webhookUrl);
+      setWebhookSaved(true);
+      setTimeout(() => setWebhookSaved(false), 2000);
+    } finally {
+      setWebhookSaving(false);
+    }
+  };
+
+  const handleWebhookTest = async () => {
+    setWebhookTesting(true);
+    try {
+      await fetch("/api/webhooks", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ event: "test", payload: { message: "WIA webhook test", timestamp: new Date().toISOString() } }),
+      });
+      setWebhookTestSent(true);
+      setTimeout(() => setWebhookTestSent(false), 2000);
+    } finally {
+      setWebhookTesting(false);
+    }
+  };
+
   if (loading) return <div className="flex h-64 items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-lime" /></div>;
 
   return (
@@ -207,6 +245,31 @@ export default function SettingsPage() {
                   {supabaseOk ? "✓ Conectado" : t.settings.configureEnv}
                 </Badge>
               </div>
+            </div>
+          </Card>
+          <Card>
+            <CardHeader title={t.settings.webhooks} description={t.settings.webhooksDesc} action={<Webhook className="h-5 w-5 text-lime" />} />
+            <div className="space-y-3">
+              <Input
+                id="webhook-url"
+                label={t.settings.webhookUrl}
+                value={webhookUrl}
+                onChange={(e) => setWebhookUrl(e.target.value)}
+                placeholder={t.settings.webhookUrlPlaceholder}
+              />
+              <div className="flex gap-2">
+                <Button onClick={handleWebhookSave} disabled={webhookSaving || !webhookUrl} size="sm">
+                  {webhookSaving ? <Loader2 className="h-3 w-3 animate-spin" /> : webhookSaved ? <CheckCircle2 className="h-3 w-3" /> : null}
+                  {webhookSaved ? t.settings.webhookSaved : t.settings.webhookSave}
+                </Button>
+                <Button variant="secondary" onClick={handleWebhookTest} disabled={webhookTesting || !webhookUrl} size="sm">
+                  {webhookTesting ? <Loader2 className="h-3 w-3 animate-spin" /> : <Play className="h-3 w-3" />}
+                  {webhookTestSent ? t.settings.webhookTestSent : t.settings.webhookTest}
+                </Button>
+              </div>
+              <p className="text-xs text-muted">
+                {locale === "es" ? "Eventos enviados: new_lead, lead_status_changed" : "Events sent: new_lead, lead_status_changed"}
+              </p>
             </div>
           </Card>
           <Card>

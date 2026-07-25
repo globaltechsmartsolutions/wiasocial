@@ -30,6 +30,9 @@ import {
   Workflow,
   UserPlus,
   ChevronDown,
+  Flame,
+  FileText,
+  Building2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useTranslation } from "@/lib/i18n/LanguageProvider";
@@ -168,6 +171,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
         { name: t.nav.aiCoach, href: "/ai-coach", icon: Bot },
       ],
       secondaryItems: [
+        { name: t.nav.trendDetector, href: "/trend-detector", icon: Flame },
         { name: t.nav.marketingPlan, href: "/marketing-plan", icon: Megaphone },
         { name: t.nav.funnelBuilder, href: "/funnel-builder", icon: Workflow },
       ],
@@ -175,9 +179,11 @@ export function Sidebar({ open, onClose }: SidebarProps) {
     {
       label: t.nav.sectionManage,
       items: [
+        { name: t.nav.clients, href: "/clients", icon: Building2 },
         { name: t.nav.leads, href: "/leads", icon: Users },
         { name: t.nav.engagement, href: "/engagement", icon: Handshake },
         { name: t.nav.analytics, href: "/analytics", icon: BarChart3 },
+        { name: t.nav.monthlyReport, href: "/monthly-report", icon: FileText },
         { name: t.nav.settings, href: "/settings", icon: Settings },
       ],
     },

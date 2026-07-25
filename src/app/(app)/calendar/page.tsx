@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { Calendar, Loader2, CheckCircle2 } from "lucide-react";
+import { Calendar, Loader2, CheckCircle2, Bot, Sparkles } from "lucide-react";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
@@ -58,13 +58,43 @@ export default function CalendarPage() {
     story: "bg-purple-500/20 text-purple-400 border-purple-500/30", post: "bg-amber-500/20 text-amber-400 border-amber-500/30",
   };
 
+  const pendingItems = items.filter((i) => i.status === "planned");
+
   if (loading) return <div className="flex h-64 items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-lime" /></div>;
 
   return (
     <div>
       <PageHeader title={t.calendar.title} description={t.calendar.description}
-        action={<Button onClick={generate} disabled={generating}>{generating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Calendar className="h-4 w-4" />}{generating ? t.calendar.generating : t.calendar.generate}</Button>} />
+        action={
+          <div className="flex gap-2">
+            <Button variant="secondary" onClick={generate} disabled={generating} title={locale === "es" ? "Agente IA: genera calendario semanal completo" : "AI Agent: generate full weekly calendar"}>
+              <Bot className="h-4 w-4" />
+              {locale === "es" ? "Agente IA" : "AI Agent"}
+            </Button>
+            <Button onClick={generate} disabled={generating}>
+              {generating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Calendar className="h-4 w-4" />}
+              {generating ? t.calendar.generating : t.calendar.generate}
+            </Button>
+          </div>
+        }
+      />
       {error && <p className="mb-4 text-sm text-red-400">{error}</p>}
+
+      {items.length > 0 && pendingItems.length > 0 && (
+        <div className="mb-6 flex items-center justify-between rounded-xl border border-lime/20 bg-lime/5 p-4">
+          <div className="flex items-center gap-3">
+            <Sparkles className="h-5 w-5 text-lime shrink-0" />
+            <div>
+              <p className="text-sm font-medium text-foreground">
+                {locale === "es" ? `${pendingItems.length} contenidos pendientes de publicar` : `${pendingItems.length} pieces pending publication`}
+              </p>
+              <p className="text-xs text-muted">
+                {locale === "es" ? "Revisa el calendario y marca como publicado cuando lo hagas" : "Review the calendar and mark as posted when you publish"}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
       {items.length > 0 ? (
         <div className="grid gap-3">
           {items.map((item) => (
