@@ -1,12 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import type { KeyboardEvent } from "react";
-import { Menu, Bell, Search, LogOut } from "lucide-react";
+import Image from "next/image";
+import { Menu, Bell, Search, LogOut, Zap } from "lucide-react";
 import { useTranslation } from "@/lib/i18n/LanguageProvider";
 import { useAuth } from "@/contexts/AuthContext";
 import { LanguageToggle } from "@/components/ui/LanguageToggle";
 import { useRouter } from "next/navigation";
+import { fetchAIUsage } from "@/lib/ai-client";
 
 interface HeaderProps {
   onMenuClick: () => void;
@@ -17,6 +19,14 @@ export function Header({ onMenuClick }: HeaderProps) {
   const { user, signOut } = useAuth();
   const router = useRouter();
   const [query, setQuery] = useState("");
+  const [aiUsage, setAiUsage] = useState<{ used: number; limit: number } | null>(null);
+
+  useEffect(() => {
+    fetchAIUsage().then((u) => setAiUsage(u)).catch(() => null);
+    const refresh = () => fetchAIUsage().then((u) => setAiUsage(u)).catch(() => null);
+    window.addEventListener("wia:usage-exceeded", refresh);
+    return () => window.removeEventListener("wia:usage-exceeded", refresh);
+  }, []);
 
   const handleSignOut = async () => {
     await signOut();
@@ -56,6 +66,20 @@ export function Header({ onMenuClick }: HeaderProps) {
         >
           <Menu className="h-5 w-5" />
         </button>
+        <button
+          onClick={() => router.push("/dashboard")}
+          className="flex items-center rounded-lg focus:outline-none focus:ring-2 focus:ring-lime/60"
+          aria-label="Ir al dashboard"
+        >
+          <Image
+            src="/logo-casa-olivo.png"
+            alt="Logo de la marca"
+            width={120}
+            height={80}
+            priority
+            className="h-10 w-auto rounded-md object-contain"
+          />
+        </button>
         <div className="hidden sm:flex items-center gap-2 rounded-lg border border-border bg-surface px-3 py-2">
           <Search className="h-4 w-4 text-muted" />
           <input
@@ -70,6 +94,20 @@ export function Header({ onMenuClick }: HeaderProps) {
       </div>
 
       <div className="flex items-center gap-3">
+        {aiUsage && (
+          <div
+            className={`hidden sm:flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-medium border ${
+              aiUsage.used >= aiUsage.limit
+                ? "border-red-500/30 bg-red-500/10 text-red-400"
+                : aiUsage.used >= aiUsage.limit - 1
+                ? "border-yellow-500/30 bg-yellow-500/10 text-yellow-400"
+                : "border-lime/20 bg-lime/5 text-lime"
+            }`}
+          >
+            <Zap className="h-3 w-3" />
+            {aiUsage.used}/{aiUsage.limit === Infinity ? "∞" : aiUsage.limit} IA
+          </div>
+        )}
         <LanguageToggle />
         <button
           onClick={() => router.push("/dashboard")}

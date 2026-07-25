@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { enforceUserRateLimit, getAccessTokenFromRequest, getUserFromAccessToken } from "@/lib/auth-server";
+import { checkAndIncrementAIUsage, UsageLimitError } from "@/lib/ai-usage";
 import { buildUserAIContext } from "@/lib/ai-context";
 import { openai, isOpenAIConfigured } from "@/lib/openai";
 import { getSupabaseForUser } from "@/lib/supabase-admin";
@@ -72,6 +73,11 @@ export async function POST(request: Request) {
 
   const context = await buildUserAIContext(user.id, token);
   const lang = locale === "es" ? "Spanish" : "English";
+
+  try { await checkAndIncrementAIUsage(user.id, token); } catch (e) {
+    if (e instanceof UsageLimitError) return NextResponse.json({ error: "USAGE_LIMIT_EXCEEDED", used: e.used, limit: e.limit }, { status: 429 });
+    throw e;
+  }
 
   const completion = await openai.chat.completions.create({
     model: "gpt-4o-mini",

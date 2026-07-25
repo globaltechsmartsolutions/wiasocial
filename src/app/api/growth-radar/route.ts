@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { enforceUserRateLimit, getAccessTokenFromRequest, getUserFromAccessToken } from "@/lib/auth-server";
+import { checkAndIncrementAIUsage, UsageLimitError } from "@/lib/ai-usage";
 import { buildUserAIContext } from "@/lib/ai-context";
 import { openai, isOpenAIConfigured } from "@/lib/openai";
 import { getSupabaseForUser } from "@/lib/supabase-admin";
@@ -95,6 +96,11 @@ export async function POST(request: Request) {
   const manualOverride = manualMetrics
     ? `\n\nManual metrics provided by user (use these when Instagram data is unavailable): followers=${manualMetrics.followers ?? "unknown"}, weeklyFollowerGain=${manualMetrics.weeklyGain ?? "unknown"}, engagementRate=${manualMetrics.engagementRate !== undefined ? `${manualMetrics.engagementRate}%` : "unknown"}`
     : "";
+
+  try { await checkAndIncrementAIUsage(user.id, token); } catch (e) {
+    if (e instanceof UsageLimitError) return NextResponse.json({ error: "USAGE_LIMIT_EXCEEDED", used: e.used, limit: e.limit }, { status: 429 });
+    throw e;
+  }
 
   const completion = await openai.chat.completions.create({
     model: "gpt-4o-mini",

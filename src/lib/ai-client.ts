@@ -3,6 +3,20 @@ import type { AudienceFinderReport } from "@/types/audience-finder";
 import type { GrowthRadarReport } from "@/types/growth-radar";
 import type { InstagramFunnelPlan, MonthlyMarketingPlan } from "@/types/marketing-os";
 
+function dispatchUsageExceeded(used: number, limit: number) {
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new CustomEvent("wia:usage-exceeded", { detail: { used, limit } }));
+  }
+}
+
+function handleAIResponse(res: Response, data: Record<string, unknown>) {
+  if (res.status === 429 && data.error === "USAGE_LIMIT_EXCEEDED") {
+    dispatchUsageExceeded(data.used as number, data.limit as number);
+    throw new Error("USAGE_LIMIT_EXCEEDED");
+  }
+  if (!res.ok) throw new Error((data.error as string) || "AI request failed");
+}
+
 export async function callAI(action: string, params: Record<string, unknown> = {}, locale = "es") {
   const token = await getToken();
   const res = await fetch("/api/ai", {
@@ -14,8 +28,15 @@ export async function callAI(action: string, params: Record<string, unknown> = {
     body: JSON.stringify({ action, locale, ...params }),
   });
   const data = await res.json();
-  if (!res.ok) throw new Error(data.error || "AI request failed");
+  handleAIResponse(res, data);
   return data;
+}
+
+export async function fetchAIUsage(): Promise<{ used: number; limit: number; monthKey: string }> {
+  const token = await getToken();
+  const res = await fetch("/api/ai-usage", { headers: { Authorization: `Bearer ${token}` } });
+  const data = await res.json();
+  return data as { used: number; limit: number; monthKey: string };
 }
 
 async function getToken() {
@@ -98,7 +119,7 @@ export async function fetchCoachMessages() {
     headers: { Authorization: `Bearer ${token}` },
   });
   const data = await res.json();
-  if (!res.ok) throw new Error(data.error || "Error al cargar mensajes");
+  handleAIResponse(res, data as Record<string, unknown>);
   return data.messages as CoachMessage[];
 }
 
@@ -113,7 +134,7 @@ export async function sendCoachMessage(message: string, locale = "es") {
     body: JSON.stringify({ message, locale }),
   });
   const data = await res.json();
-  if (!res.ok) throw new Error(data.error || "Error del coach");
+  handleAIResponse(res, data as Record<string, unknown>);
   return data.reply as string;
 }
 
@@ -135,7 +156,7 @@ export async function fetchDailyBrief() {
     headers: { Authorization: `Bearer ${token}` },
   });
   const data = await res.json();
-  if (!res.ok) throw new Error(data.error || "Error al cargar brief");
+  handleAIResponse(res, data as Record<string, unknown>);
   return { brief: data.brief as DailyBrief | null, date: data.date as string };
 }
 
@@ -150,7 +171,7 @@ export async function generateDailyBrief(locale = "es", force = false) {
     body: JSON.stringify({ locale, force }),
   });
   const data = await res.json();
-  if (!res.ok) throw new Error(data.error || "Error al generar brief");
+  handleAIResponse(res, data as Record<string, unknown>);
   return { brief: data.brief as DailyBrief, date: data.date as string, cached: data.cached as boolean };
 }
 
@@ -165,7 +186,7 @@ export async function scoreLead(lead: Record<string, unknown>, locale = "es") {
     body: JSON.stringify({ lead, locale }),
   });
   const data = await res.json();
-  if (!res.ok) throw new Error(data.error || "Error al puntuar lead");
+  handleAIResponse(res, data as Record<string, unknown>);
   return data as LeadIQResult;
 }
 
@@ -175,7 +196,7 @@ export async function fetchGrowthRadar() {
     headers: { Authorization: `Bearer ${token}` },
   });
   const data = await res.json();
-  if (!res.ok) throw new Error(data.error || "Error al cargar Radar IA");
+  handleAIResponse(res, data as Record<string, unknown>);
   return data as GrowthRadarResponse;
 }
 
@@ -190,7 +211,7 @@ export async function generateGrowthRadar(locale = "es", force = false, manualMe
     body: JSON.stringify({ locale, force, manualMetrics }),
   });
   const data = await res.json();
-  if (!res.ok) throw new Error(data.error || "Error al generar Radar IA");
+  handleAIResponse(res, data as Record<string, unknown>);
   return data as GrowthRadarResponse;
 }
 
@@ -200,7 +221,7 @@ export async function fetchMarketingPlan() {
     headers: { Authorization: `Bearer ${token}` },
   });
   const data = await res.json();
-  if (!res.ok) throw new Error(data.error || "Error al cargar plan de marketing");
+  handleAIResponse(res, data as Record<string, unknown>);
   return data as MarketingPlanResponse;
 }
 
@@ -215,7 +236,7 @@ export async function generateMarketingPlan(locale = "es", objective = "leads", 
     body: JSON.stringify({ locale, objective, force }),
   });
   const data = await res.json();
-  if (!res.ok) throw new Error(data.error || "Error al generar plan de marketing");
+  handleAIResponse(res, data as Record<string, unknown>);
   return data as MarketingPlanResponse;
 }
 
@@ -225,7 +246,7 @@ export async function fetchLatestFunnel() {
     headers: { Authorization: `Bearer ${token}` },
   });
   const data = await res.json();
-  if (!res.ok) throw new Error(data.error || "Error al cargar funnel");
+  handleAIResponse(res, data as Record<string, unknown>);
   return data as FunnelBuilderResponse;
 }
 
@@ -243,7 +264,7 @@ export async function generateFunnel(
     body: JSON.stringify({ ...payload, locale }),
   });
   const data = await res.json();
-  if (!res.ok) throw new Error(data.error || "Error al generar funnel");
+  handleAIResponse(res, data as Record<string, unknown>);
   return data as FunnelBuilderResponse;
 }
 
@@ -253,7 +274,7 @@ export async function fetchAudienceFinder() {
     headers: { Authorization: `Bearer ${token}` },
   });
   const data = await res.json();
-  if (!res.ok) throw new Error(data.error || "Error al cargar Audience Finder");
+  handleAIResponse(res, data as Record<string, unknown>);
   return data as AudienceFinderResponse;
 }
 
@@ -278,7 +299,7 @@ export async function generateAudienceFinder(
     body: JSON.stringify({ ...payload, locale }),
   });
   const data = await res.json();
-  if (!res.ok) throw new Error(data.error || "Error al generar Audience Finder");
+  handleAIResponse(res, data as Record<string, unknown>);
   return data as AudienceFinderResponse;
 }
 
@@ -290,7 +311,7 @@ export async function fetchTrendDetector() {
     headers: { Authorization: `Bearer ${token}` },
   });
   const data = await res.json();
-  if (!res.ok) throw new Error(data.error || "Error");
+  handleAIResponse(res, data as Record<string, unknown>);
   return data as { result: unknown; createdAt: string | null };
 }
 
@@ -302,7 +323,7 @@ export async function generateTrendDetector(locale = "es") {
     body: JSON.stringify({ locale }),
   });
   const data = await res.json();
-  if (!res.ok) throw new Error(data.error || "Error");
+  handleAIResponse(res, data as Record<string, unknown>);
   return data as { result: unknown; createdAt: string };
 }
 
@@ -314,7 +335,7 @@ export async function fetchMonthlyReport() {
     headers: { Authorization: `Bearer ${token}` },
   });
   const data = await res.json();
-  if (!res.ok) throw new Error(data.error || "Error");
+  handleAIResponse(res, data as Record<string, unknown>);
   return data as { report: unknown; monthKey: string; createdAt: string | null };
 }
 
@@ -326,6 +347,6 @@ export async function generateMonthlyReport(locale = "es") {
     body: JSON.stringify({ locale }),
   });
   const data = await res.json();
-  if (!res.ok) throw new Error(data.error || "Error");
+  handleAIResponse(res, data as Record<string, unknown>);
   return data as { report: unknown; monthKey: string; createdAt: string };
 }

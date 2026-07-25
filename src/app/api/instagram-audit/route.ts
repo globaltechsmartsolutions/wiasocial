@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { enforceUserRateLimit, getAccessTokenFromRequest, getUserFromAccessToken } from "@/lib/auth-server";
+import { checkAndIncrementAIUsage, UsageLimitError } from "@/lib/ai-usage";
 import { scoreInstagramProfile } from "@/lib/audit-scoring";
 import { openai, isOpenAIConfigured } from "@/lib/openai";
 import { getSupabaseForUser } from "@/lib/supabase-admin";
@@ -58,6 +59,11 @@ export async function POST(request: Request) {
   }
   const limited = await enforceUserRateLimit(request, user.id, "instagram-audit", 20, 60 * 60 * 1000);
   if (limited) return limited;
+
+  try { await checkAndIncrementAIUsage(user.id, token); } catch (e) {
+    if (e instanceof UsageLimitError) return NextResponse.json({ error: "USAGE_LIMIT_EXCEEDED", used: e.used, limit: e.limit }, { status: 429 });
+    throw e;
+  }
 
   try {
     const body = await request.json();
