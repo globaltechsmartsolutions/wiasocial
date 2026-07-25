@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react";
 import type { KeyboardEvent } from "react";
-import Image from "next/image";
 import { Menu, Bell, Search, LogOut, Zap } from "lucide-react";
 import { useTranslation } from "@/lib/i18n/LanguageProvider";
 import { useAuth } from "@/contexts/AuthContext";
@@ -71,14 +70,12 @@ export function Header({ onMenuClick }: HeaderProps) {
           className="flex items-center rounded-lg focus:outline-none focus:ring-2 focus:ring-lime/60"
           aria-label="Ir al dashboard"
         >
-          <Image
-            src="/logo-casa-olivo.png"
-            alt="Logo de la marca"
-            width={120}
-            height={80}
-            priority
-            className="h-10 w-auto rounded-md object-contain"
-          />
+          <div className="flex items-center gap-2">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg gradient-lime">
+              <Zap className="h-4 w-4 text-black" />
+            </div>
+            <span className="text-sm font-bold text-foreground hidden sm:block">WIA</span>
+          </div>
         </button>
         <div className="hidden sm:flex items-center gap-2 rounded-lg border border-border bg-surface px-3 py-2">
           <Search className="h-4 w-4 text-muted" />
