@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from "react";
 import type { KeyboardEvent } from "react";
-import { Menu, Bell, Search, LogOut, Zap } from "lucide-react";
+import { Menu, Search, LogOut, Zap } from "lucide-react";
+import { NotificationBell } from "@/components/layout/NotificationBell";
 import { useTranslation } from "@/lib/i18n/LanguageProvider";
 import { useAuth } from "@/contexts/AuthContext";
 import { LanguageToggle } from "@/components/ui/LanguageToggle";
@@ -106,13 +107,7 @@ export function Header({ onMenuClick }: HeaderProps) {
           </div>
         )}
         <LanguageToggle />
-        <button
-          onClick={() => router.push("/dashboard")}
-          title="Brief diario"
-          className="relative rounded-lg p-2 text-muted hover:bg-surface-elevated hover:text-foreground"
-        >
-          <Bell className="h-5 w-5" />
-        </button>
+        <NotificationBell />
         <button
           onClick={handleSignOut}
           title="Cerrar sesión"
