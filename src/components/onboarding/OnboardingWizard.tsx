@@ -58,9 +58,7 @@ export function OnboardingWizard() {
 
   const handleCta = () => {
     if (current.href) {
-      if (isLast) {
-        handleDismiss();
-      }
+      handleDismiss();
       router.push(current.href);
     } else {
       setStep((s) => s + 1);

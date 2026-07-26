@@ -14,6 +14,7 @@ import {
   ShieldCheck,
   Sparkles,
   Target,
+  X,
 } from "lucide-react";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Card, CardHeader } from "@/components/ui/Card";
@@ -634,12 +635,30 @@ function CarouselStudioPreview({
 }) {
   const [selected, setSelected] = useState(0);
   const [previewUrls, setPreviewUrls] = useState<string[]>([]);
+  const [bgImage, setBgImage] = useState<HTMLImageElement | null>(null);
+  const [bgPreview, setBgPreview] = useState<string | null>(null);
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const url = URL.createObjectURL(file);
+    setBgPreview(url);
+    const img = new window.Image();
+    img.onload = () => setBgImage(img);
+    img.src = url;
+  };
+
+  const removeBg = () => {
+    setBgImage(null);
+    if (bgPreview) URL.revokeObjectURL(bgPreview);
+    setBgPreview(null);
+  };
 
   useEffect(() => {
-    const urls = output.carousel.map((slide, index) => renderCarouselSlide(output, slide, index).toDataURL("image/png"));
+    const urls = output.carousel.map((slide, index) => renderCarouselSlide(output, slide, index, bgImage ?? undefined).toDataURL("image/png"));
     setPreviewUrls(urls);
     setSelected((current) => Math.min(current, Math.max(output.carousel.length - 1, 0)));
-  }, [output]);
+  }, [output, bgImage]);
 
   const activeSlide = output.carousel[selected] ?? output.carousel[0];
   const activePreview = previewUrls[selected] ?? previewUrls[0];
@@ -659,7 +678,29 @@ function CarouselStudioPreview({
       </div>
 
       <div className="grid gap-5 xl:grid-cols-[minmax(320px,520px)_1fr]">
-        <div className="mx-auto w-full max-w-[520px]">
+        <div className="mx-auto w-full max-w-[520px] space-y-3">
+          {/* Background image upload */}
+          <div className="flex items-center gap-2">
+            <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-dashed border-border bg-surface-elevated px-3 py-2 text-xs text-muted hover:border-lime/40 hover:text-lime transition-colors">
+              <ImageIcon className="h-4 w-4" />
+              {bgPreview ? "Cambiar foto de fondo" : "Añadir foto de fondo"}
+              <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} />
+            </label>
+            {bgPreview && (
+              <button
+                onClick={removeBg}
+                className="flex items-center gap-1 rounded-lg border border-border px-2 py-1.5 text-xs text-muted hover:text-red-400 transition-colors"
+              >
+                <X className="h-3.5 w-3.5" /> Quitar
+              </button>
+            )}
+            {bgPreview && (
+              <div className="h-8 w-8 rounded-md overflow-hidden border border-lime/30 shrink-0">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={bgPreview} alt="" className="h-full w-full object-cover" />
+              </div>
+            )}
+          </div>
           <div className="overflow-hidden rounded-xl border border-lime/30 bg-black p-3 shadow-2xl shadow-black/40">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={activePreview} alt={`${labels.preview} ${activeSlide.slide}`} className="aspect-[4/5] w-full rounded-lg object-cover" />
@@ -890,7 +931,7 @@ const DISTINCT_LAYOUT_TEMPLATES = [
   "before_after",
 ];
 
-function renderCarouselSlide(output: PremiumGeneratedContent, slide: PremiumCarouselSlide, index: number) {
+function renderCarouselSlide(output: PremiumGeneratedContent, slide: PremiumCarouselSlide, index: number, bgImage?: HTMLImageElement) {
   if (!DISTINCT_LAYOUT_TEMPLATES.includes(output.contentRoute.templateId)) {
     return renderCarouselSlideLegacy(output, slide, index);
   }
@@ -917,7 +958,27 @@ function renderCarouselSlide(output: PremiumGeneratedContent, slide: PremiumCaro
 
   ctx.fillStyle = palette.background;
   ctx.fillRect(0, 0, width, height);
-  drawTemplateBackground(ctx, output.contentRoute.templateId, slide.type, index, width, height, palette);
+
+  if (bgImage) {
+    // Draw real photo as background with cover-fit
+    const imgRatio = bgImage.naturalWidth / bgImage.naturalHeight;
+    const canvasRatio = width / height;
+    let sx = 0, sy = 0, sw = bgImage.naturalWidth, sh = bgImage.naturalHeight;
+    if (imgRatio > canvasRatio) {
+      sw = bgImage.naturalHeight * canvasRatio;
+      sx = (bgImage.naturalWidth - sw) / 2;
+    } else {
+      sh = bgImage.naturalWidth / canvasRatio;
+      sy = (bgImage.naturalHeight - sh) / 2;
+    }
+    ctx.drawImage(bgImage, sx, sy, sw, sh, 0, 0, width, height);
+    // Dark overlay so text is always readable
+    ctx.fillStyle = "rgba(0,0,0,0.58)";
+    ctx.fillRect(0, 0, width, height);
+  } else {
+    drawTemplateBackground(ctx, output.contentRoute.templateId, slide.type, index, width, height, palette);
+  }
+
   drawSlideChrome(ctx, output, slide, width, height, palette);
   drawSlideContent(
     ctx,
