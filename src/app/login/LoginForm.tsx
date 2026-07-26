@@ -83,8 +83,18 @@ export default function LoginForm() {
           <button type="button" onClick={() => setMode(mode === "login" ? "signup" : "login")} className="w-full text-sm text-muted hover:text-lime">
             {mode === "login" ? "¿No tienes cuenta? Regístrate" : "¿Ya tienes cuenta? Inicia sesión"}
           </button>
+          {mode === "login" && (
+            <Link href="/login/reset" className="block w-full text-center text-xs text-muted hover:text-lime">
+              ¿Olvidaste tu contraseña?
+            </Link>
+          )}
         </form>
-        <p className="mt-4 text-center text-xs text-muted"><Link href="/setup" className="hover:text-lime">Guía de configuración</Link></p>
+        <p className="mt-6 text-center text-xs text-muted">
+          Al registrarte aceptas nuestros{" "}
+          <Link href="/terms" className="hover:text-lime underline">Términos de Servicio</Link>
+          {" "}y{" "}
+          <Link href="/privacy" className="hover:text-lime underline">Política de Privacidad</Link>
+        </p>
       </div>
     </div>
   );

@@ -8,9 +8,32 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "WIA Social",
+  title: {
+    default: "WIA Social — Instagram Growth OS con IA",
+    template: "%s — WIA Social",
+  },
   description:
-    "Asistente legal de crecimiento con IA para creadores y agencias de Instagram. Generación de contenido, CRM de leads y planificación de engagement.",
+    "La plataforma todo-en-uno para creadores y agencias que quieren crecer en Instagram. Generación de contenido IA, CRM de leads, análisis de métricas y estrategias personalizadas.",
+  metadataBase: new URL("https://wiasocial-production.up.railway.app"),
+  openGraph: {
+    title: "WIA Social — Instagram Growth OS con IA",
+    description:
+      "La plataforma todo-en-uno para creadores y agencias que quieren crecer en Instagram.",
+    url: "https://wiasocial-production.up.railway.app",
+    siteName: "WIA Social",
+    locale: "es_ES",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "WIA Social — Instagram Growth OS con IA",
+    description:
+      "La plataforma todo-en-uno para creadores y agencias que quieren crecer en Instagram.",
+  },
+  robots: {
+    index: true,
+    follow: true,
+  },
   icons: {
     icon: [
       { url: "/favicon.ico", sizes: "32x32" },
