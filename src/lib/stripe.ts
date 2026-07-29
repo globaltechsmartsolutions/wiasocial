@@ -1,4 +1,7 @@
+import "server-only";
+
 import Stripe from "stripe";
+import { isConfiguredEnvValue } from "@/lib/env";
 
 let stripeClient: Stripe | null = null;
 
@@ -65,9 +68,9 @@ export function planFromPriceId(priceId: string | null | undefined): PlanKey | n
 }
 
 export function isStripeConfigured() {
-  return Boolean(process.env.STRIPE_SECRET_KEY?.trim());
+  return isConfiguredEnvValue(process.env.STRIPE_SECRET_KEY);
 }
 
 export function isStripePlanConfigured(plan: PlanKey) {
-  return isStripeConfigured() && Boolean(PLANS[plan].priceId?.trim());
+  return isStripeConfigured() && isConfiguredEnvValue(PLANS[plan].priceId);
 }

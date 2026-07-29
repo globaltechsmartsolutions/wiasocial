@@ -19,7 +19,7 @@ export default function SetupPage() {
           </div>
           <div>
             <h1 className="text-2xl font-bold text-foreground">Configuración inicial</h1>
-            <p className="text-muted">Conecta Supabase y OpenAI para datos reales</p>
+            <p className="text-muted">Conecta un Supabase de desarrollo para usar los flujos con datos</p>
           </div>
         </div>
 
@@ -37,15 +37,15 @@ export default function SetupPage() {
                 </a>{" "}
                 y crea un proyecto gratis
               </li>
-              <li>En SQL Editor, pega y ejecuta el contenido de <code className="text-lime">supabase/schema.sql</code></li>
-              <li>En Settings → API, copia la URL y la anon key</li>
+              <li>En Settings → API, copia la URL y la clave pública del proyecto</li>
+              <li>Para preparar la base completa en desarrollo o staging, ejecuta <code className="text-lime">npm run migrate:all</code></li>
             </ol>
           </div>
 
           <div className="rounded-xl border border-border bg-surface p-6">
             <div className="flex items-center gap-3 mb-4">
               <Key className="h-5 w-5 text-lime" />
-              <h2 className="font-semibold text-foreground">2. Obtener OpenAI API Key</h2>
+              <h2 className="font-semibold text-foreground">2. OpenAI (opcional)</h2>
             </div>
             <ol className="space-y-2 text-sm text-muted list-decimal list-inside">
               <li>
@@ -54,16 +54,16 @@ export default function SetupPage() {
                   platform.openai.com <ExternalLink className="h-3 w-3" />
                 </a>
               </li>
-              <li>Crea una API key y cópiala</li>
+              <li>Crea una API key únicamente si vas a probar las funciones de IA</li>
             </ol>
           </div>
 
           <div className="rounded-xl border border-lime/20 bg-lime/5 p-6">
             <h2 className="font-semibold text-foreground mb-3">3. Editar .env.local</h2>
-            <pre className="rounded-lg bg-surface-elevated p-4 text-xs text-muted overflow-x-auto">{`NEXT_PUBLIC_SUPABASE_URL=https://tu-proyecto.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=tu_anon_key
-OPENAI_API_KEY=sk-tu_openai_key`}</pre>
-            <p className="mt-3 text-sm text-muted">Reinicia el servidor después de guardar: <code className="text-lime">./start-dev.sh</code></p>
+            <pre className="rounded-lg bg-surface-elevated p-4 text-xs text-muted overflow-x-auto">{`NEXT_PUBLIC_SUPABASE_URL=https://your-project-ref.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-supabase-anon-key
+NEXT_PUBLIC_APP_URL=http://localhost:3000`}</pre>
+            <p className="mt-3 text-sm text-muted">No subas <code className="text-lime">.env.local</code> a Git. Reinicia con <code className="text-lime">npm run dev:local</code> después de cambiarlo.</p>
           </div>
 
           <Link href="/login" className="block text-center text-sm text-lime hover:underline">

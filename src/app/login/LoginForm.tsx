@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Instagram, Zap, Loader2 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
@@ -23,13 +23,12 @@ export default function LoginForm() {
   const [oauthSubmitting, setOauthSubmitting] = useState(false);
   const [success, setSuccess] = useState("");
 
-  if (loading) {
-    return <div className="flex h-screen items-center justify-center bg-background"><Loader2 className="h-8 w-8 animate-spin text-lime" /></div>;
-  }
+  useEffect(() => {
+    if (!loading && !configured) router.replace("/setup");
+  }, [configured, loading, router]);
 
-  if (!configured) {
-    router.replace("/setup");
-    return null;
+  if (loading || !configured) {
+    return <div className="flex h-screen items-center justify-center bg-background"><Loader2 className="h-8 w-8 animate-spin text-lime" /></div>;
   }
 
   const handleSubmit = async (e: React.FormEvent) => {

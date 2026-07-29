@@ -23,17 +23,21 @@ function getProjectRef() {
 }
 
 function isPlaceholder(value) {
-  return value.includes("your_") || value.includes("tu_") || value === "xxxxx";
+  const normalized = value.trim().toLowerCase();
+  return !normalized
+    || /(?:^|[-_/:.@])(?:your|tu|replace|placeholder|example|sample|dummy|fake|changeme|here|aqui|xxxxx)(?:[-_.:/@]|$)/u.test(normalized)
+    || /^x{5,}$/.test(normalized)
+    || (normalized.startsWith("<") && normalized.endsWith(">"));
 }
 
 function buildConnectionStrings() {
   const directUrl = process.env.SUPABASE_DB_URL?.trim() || process.env.DATABASE_URL?.trim();
-  if (directUrl) return [directUrl];
+  if (directUrl && !isPlaceholder(directUrl)) return [directUrl];
 
   const password = process.env.SUPABASE_DB_PASSWORD?.trim();
   const projectRef = getProjectRef();
 
-  if (!password) {
+  if (!password || isPlaceholder(password)) {
     throw new Error("Falta SUPABASE_DB_PASSWORD, SUPABASE_DB_URL o DATABASE_URL en .env.local");
   }
 
@@ -46,7 +50,7 @@ function buildConnectionStrings() {
   const poolerPort = process.env.SUPABASE_POOLER_PORT?.trim() || "6543";
   const urls = [];
 
-  if (poolerHost) {
+  if (poolerHost && !isPlaceholder(poolerHost)) {
     urls.push(`postgresql://postgres.${projectRef}:${encodedPassword}@${poolerHost}:${poolerPort}/postgres`);
   }
 
@@ -62,7 +66,7 @@ export async function connectSupabase() {
   let lastError = null;
 
   for (const connectionString of buildConnectionStrings()) {
-    const client = new pg.Client({ connectionString, ssl: { rejectUnauthorized: false } });
+    const client = new pg.Client({ connectionString, ssl: { rejectUnauthorized: true } });
     try {
       await client.connect();
       await client.query("SELECT 1");
@@ -81,8 +85,16 @@ export async function connectSupabase() {
 export async function runSqlFiles(client, files) {
   for (const file of files) {
     console.log(`Ejecutando ${file}...`);
-    await client.query(readSqlFile(file));
-    console.log(`${file} OK`);
+    await client.query("BEGIN");
+    try {
+      await client.query(readSqlFile(file));
+      await client.query("COMMIT");
+      console.log(`${file} OK`);
+    } catch (error) {
+      await client.query("ROLLBACK");
+      const message = error instanceof Error ? error.message : String(error);
+      throw new Error(`Falló ${file}: ${message}`, { cause: error });
+    }
   }
 }
 

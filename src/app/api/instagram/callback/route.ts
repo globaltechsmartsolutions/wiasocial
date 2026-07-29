@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
-import { getAppUrl } from "@/lib/meta";
+import { getAppUrl } from "@/lib/app-url";
 import { connectInstagramLoginAccount, verifyInstagramOAuthState } from "@/lib/instagram-login";
 import { syncInstagramDataForUser } from "@/lib/instagram-sync";
 

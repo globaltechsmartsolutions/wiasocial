@@ -1,5 +1,6 @@
 import "server-only";
 import crypto from "crypto";
+import { isConfiguredEnvValue } from "@/lib/env";
 import { getInstagramRedirectUri } from "@/lib/meta";
 
 const IG_GRAPH = "https://graph.instagram.com/v21.0";
@@ -13,9 +14,7 @@ function getInstagramAppSecret(): string {
 }
 
 export function isInstagramLoginConfigured(): boolean {
-  const id = getInstagramAppId();
-  const secret = getInstagramAppSecret();
-  return Boolean(id && secret && !id.includes("your_") && !id.includes("your_meta"));
+  return isConfiguredEnvValue(getInstagramAppId()) && isConfiguredEnvValue(getInstagramAppSecret());
 }
 
 export function signInstagramOAuthState(userId: string): string {
@@ -189,7 +188,7 @@ export async function fetchIgLoginProfile(igUserId: string, accessToken: string)
   };
 }
 
-export async function fetchIgLoginAccountInsights(igUserId: string, accessToken: string) {
+export async function fetchIgLoginAccountInsights(accessToken: string) {
   const metrics = [
     "reach",
     "profile_views",
@@ -216,7 +215,7 @@ export async function fetchIgLoginAccountInsights(igUserId: string, accessToken:
   }));
 }
 
-export async function fetchIgLoginAudienceInsights(igUserId: string, accessToken: string) {
+export async function fetchIgLoginAudienceInsights(accessToken: string) {
   const online = await igGraphGetSafe<{
     data: { name: string; values: { value: Record<string, number> }[] }[];
   }>("/me/insights", accessToken, {
@@ -245,7 +244,7 @@ export async function fetchIgLoginAudienceInsights(igUserId: string, accessToken
   return { onlineFollowers, demographics: demographics?.data?.[0] ?? null };
 }
 
-export async function fetchIgLoginStories(igUserId: string, accessToken: string) {
+export async function fetchIgLoginStories(accessToken: string) {
   const data = await igGraphGetSafe<{
     data: { id: string; media_type?: string; permalink?: string; timestamp: string }[];
   }>("/me/stories", accessToken, {
@@ -300,7 +299,7 @@ function mapMediaType(mediaType?: string): "reel" | "carousel" | "story" | "post
   return "post";
 }
 
-export async function fetchIgLoginMedia(igUserId: string, accessToken: string, limit = 100) {
+export async function fetchIgLoginMedia(accessToken: string, limit = 100) {
   const fields = "id,caption,timestamp,like_count,comments_count,media_type,permalink,thumbnail_url,media_url";
   let nextUrl: string | null = null;
   const all: {

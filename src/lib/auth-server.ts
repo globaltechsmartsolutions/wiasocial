@@ -1,12 +1,15 @@
+import "server-only";
+
 import { createClient } from "@supabase/supabase-js";
 import type { User } from "@supabase/supabase-js";
-import { getClientIp, checkRateLimit, rateLimitResponse } from "@/lib/rate-limit";
+import { isConfiguredEnvValue, isConfiguredHttpUrl } from "@/lib/env";
+import { checkRateLimit, rateLimitResponse, userRateLimitKey } from "@/lib/rate-limit";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "";
 
 export async function getUserFromAccessToken(token: string | null): Promise<User | null> {
-  if (!token || !supabaseUrl || !supabaseAnonKey) return null;
+  if (!token || !isConfiguredHttpUrl(supabaseUrl) || !isConfiguredEnvValue(supabaseAnonKey)) return null;
 
   const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     global: { headers: { Authorization: `Bearer ${token}` } },
@@ -34,14 +37,13 @@ export async function requireAuth(request: Request): Promise<{ user: User; token
 }
 
 export async function enforceUserRateLimit(
-  request: Request,
+  _request: Request,
   userId: string,
   scope: string,
   limit = 20,
   windowMs = 60 * 60 * 1000
 ) {
-  const ip = getClientIp(request);
-  const result = await checkRateLimit({ key: `${scope}:${userId}:${ip}`, limit, windowMs });
+  const result = await checkRateLimit({ key: userRateLimitKey(scope, userId), limit, windowMs });
   if (!result.ok) return rateLimitResponse(result.retryAfter);
   return null;
 }

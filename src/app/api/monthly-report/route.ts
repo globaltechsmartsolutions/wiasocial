@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server";
-import { getAccessTokenFromRequest, getUserFromAccessToken } from "@/lib/auth-server";
+import { enforceUserRateLimit, getAccessTokenFromRequest, getUserFromAccessToken } from "@/lib/auth-server";
 import { enforceAIUsage } from "@/lib/ai-usage-guard";
 import { buildUserAIContext } from "@/lib/ai-context";
 import { openai, isOpenAIConfigured } from "@/lib/openai";
 import { getSupabaseForUser } from "@/lib/supabase-admin";
+import { readJsonObject } from "@/lib/request-validation";
 
 const REPORT_SYSTEM_PROMPT = `You are an expert marketing analyst creating a monthly performance report for an Instagram growth client. Analyze the user's data and create a comprehensive monthly report that can be shared with clients or used internally.
 
@@ -55,16 +56,18 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
+  const token = getAccessTokenFromRequest(request);
+  const user = await getUserFromAccessToken(token);
+  if (!user || !token) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const limited = await enforceUserRateLimit(request, user.id, "monthly-report", 8, 60 * 60 * 1000);
+  if (limited) return limited;
   if (!isOpenAIConfigured()) {
     return NextResponse.json({ error: "OpenAI no configurada" }, { status: 503 });
   }
 
-  const token = getAccessTokenFromRequest(request);
-  const user = await getUserFromAccessToken(token);
-  if (!user || !token) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
-  const body = await request.json().catch(() => ({}));
-  const locale = (body.locale as string) ?? "es";
+  const parsed = await readJsonObject<{ locale?: string }>(request);
+  if (!parsed.ok) return parsed.response;
+  const locale = parsed.data.locale ?? "es";
 
   const ctx = await buildUserAIContext(user.id, token);
   const now = new Date();

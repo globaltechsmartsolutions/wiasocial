@@ -1,3 +1,5 @@
+import "server-only";
+
 import { getSupabaseForUser } from "@/lib/supabase-admin";
 import { mergeBrandMemory } from "@/lib/brand-memory";
 import type { BrandMemory, LeadStatus, PostPerformance, UserSettings } from "@/types";

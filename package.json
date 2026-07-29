@@ -3,19 +3,22 @@
   "version": "0.1.0",
   "private": true,
   "engines": {
-    "node": ">=22 <23"
+    "node": ">=22 <25"
   },
   "scripts": {
     "dev": "next dev",
     "dev:local": "node scripts/start-dev.mjs",
+    "postinstall": "patch-package",
     "clean": "node scripts/clean.mjs",
     "build": "next build",
     "start": "next start",
     "lint": "eslint . --max-warnings=0",
     "typecheck": "tsc --noEmit --pretty false",
     "test": "vitest run",
+    "deadcode": "knip",
+    "audit": "npm audit --audit-level=high",
     "test:rls": "vitest run tests/rls-user-settings.integration.test.mjs",
-    "check": "npm run lint && npm run typecheck && npm run test && npm run build",
+    "check": "npm run lint && npm run typecheck && npm run test && npm run deadcode && npm run build && npm run audit",
     "migrate:all": "node --env-file=.env.local scripts/migrate-all.mjs",
     "migrate:instagram": "node --env-file=.env.local scripts/migrate-instagram.mjs",
     "migrate:growth-radar": "node --env-file=.env.local scripts/migrate-growth-radar.mjs",
@@ -27,30 +30,38 @@
     "model:bakeoff": "node scripts/model-bakeoff.mjs",
     "model:bakeoff:dry-run": "node scripts/model-bakeoff.mjs --dry-run"
   },
+  "overrides": {
+    "next": {
+      "postcss": "8.5.24",
+      "sharp": "0.35.3"
+    },
+    "brace-expansion": "5.0.8"
+  },
   "dependencies": {
-    "@supabase/supabase-js": "^2.49.1",
+    "@supabase/supabase-js": "^2.111.0",
     "clsx": "^2.1.1",
     "lucide-react": "^0.475.0",
-    "next": "^15.5.21",
+    "next": "^16.2.12",
     "openai": "^4.85.4",
     "pg": "^8.22.0",
-    "react": "^19.0.0",
-    "react-dom": "^19.0.0",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
     "react-markdown": "^10.1.0",
     "server-only": "^0.0.1",
     "stripe": "^22.3.2",
     "tailwind-merge": "^3.0.1"
   },
   "devDependencies": {
-    "@eslint/eslintrc": "^3.3.0",
     "@tailwindcss/postcss": "^4.0.9",
-    "@types/node": "^22.13.5",
-    "@types/react": "^19.0.10",
-    "@types/react-dom": "^19.0.4",
-    "eslint": "^9.21.0",
-    "eslint-config-next": "^15.5.21",
+    "@types/node": "^22.20.1",
+    "@types/react": "^19.2.17",
+    "@types/react-dom": "^19.2.3",
+    "eslint": "^9.39.5",
+    "eslint-config-next": "^16.2.12",
+    "knip": "^6.29.0",
+    "patch-package": "^8.0.1",
     "tailwindcss": "^4.0.9",
-    "typescript": "^5.7.3",
+    "typescript": "^5.9.3",
     "vitest": "^4.1.10"
   }
 }

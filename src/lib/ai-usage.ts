@@ -1,3 +1,5 @@
+import "server-only";
+
 import { getSupabaseForUser } from "@/lib/supabase-admin";
 
 export interface PlanUsagePolicy {

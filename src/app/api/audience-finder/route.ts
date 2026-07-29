@@ -4,6 +4,7 @@ import { enforceAIUsage } from "@/lib/ai-usage-guard";
 import { buildUserAIContext } from "@/lib/ai-context";
 import { openai, isOpenAIConfigured } from "@/lib/openai";
 import { getSupabaseForUser } from "@/lib/supabase-admin";
+import { readJsonObject } from "@/lib/request-validation";
 import type {
   AudienceFinderReport,
   AudienceSegment,
@@ -92,15 +93,16 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  if (!isOpenAIConfigured()) return NextResponse.json({ error: "OpenAI no configurada" }, { status: 503 });
-
   const token = getAccessTokenFromRequest(request);
   const user = await getUserFromAccessToken(token);
   if (!user || !token) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const limited = await enforceUserRateLimit(request, user.id, "audience-finder", 15, 60 * 60 * 1000);
   if (limited) return limited;
+  if (!isOpenAIConfigured()) return NextResponse.json({ error: "OpenAI no configurada" }, { status: 503 });
 
-  const payload = (await request.json().catch(() => ({}))) as AudienceFinderPayload;
+  const parsed = await readJsonObject<AudienceFinderPayload>(request);
+  if (!parsed.ok) return parsed.response;
+  const payload = parsed.data;
   const locale = payload.locale === "en" ? "en" : "es";
   const niche = safeString(payload.niche, "");
   if (!niche) return NextResponse.json({ error: "Nicho requerido" }, { status: 400 });

@@ -1,4 +1,4 @@
-export interface InstagramFullProfile {
+interface InstagramFullProfile {
   id: string;
   username: string;
   name?: string;
@@ -10,7 +10,7 @@ export interface InstagramFullProfile {
   mediaCount: number;
 }
 
-export interface InstagramInsightMetric {
+interface InstagramInsightMetric {
   name: string;
   period: string;
   value: number;
@@ -18,7 +18,7 @@ export interface InstagramInsightMetric {
   description?: string;
 }
 
-export interface InstagramMediaComment {
+interface InstagramMediaComment {
   id: string;
   text: string;
   username: string;
@@ -26,7 +26,7 @@ export interface InstagramMediaComment {
   likeCount: number;
 }
 
-export interface InstagramMediaItem {
+interface InstagramMediaItem {
   instagramMediaId: string;
   mediaType: string;
   caption: string;
@@ -39,14 +39,14 @@ export interface InstagramMediaItem {
   comments: InstagramMediaComment[];
 }
 
-export interface InstagramStoryItem {
+interface InstagramStoryItem {
   id: string;
   mediaType: string;
   permalink?: string;
   timestamp: string;
 }
 
-export interface InstagramAudienceData {
+interface InstagramAudienceData {
   onlineFollowers?: { hour: number; value: number }[];
   demographics?: Record<string, unknown>;
 }

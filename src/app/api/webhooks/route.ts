@@ -1,30 +1,19 @@
 import { NextResponse } from "next/server";
-import { getAccessTokenFromRequest, getUserFromAccessToken } from "@/lib/auth-server";
+import { enforceUserRateLimit, getAccessTokenFromRequest, getUserFromAccessToken } from "@/lib/auth-server";
 import { getSupabaseForUser } from "@/lib/supabase-admin";
 import { deliverWebhook, UnsafeWebhookUrlError } from "@/lib/webhook-delivery";
-
-const MAX_REQUEST_BYTES = 256 * 1024;
+import { readJsonObject } from "@/lib/request-validation";
 
 export async function POST(request: Request) {
   const token = getAccessTokenFromRequest(request);
   const user = await getUserFromAccessToken(token);
   if (!user || !token) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const limited = await enforceUserRateLimit(request, user.id, "webhook-test", 30, 60 * 60 * 1000);
+  if (limited) return limited;
 
-  const rawRequestBody = await request.text();
-  if (Buffer.byteLength(rawRequestBody) > MAX_REQUEST_BYTES) {
-    return NextResponse.json({ error: "Payload demasiado grande" }, { status: 413 });
-  }
-
-  let input: unknown;
-  try {
-    input = JSON.parse(rawRequestBody);
-  } catch {
-    return NextResponse.json({ error: "JSON inválido" }, { status: 400 });
-  }
-
-  const body = input && typeof input === "object" && !Array.isArray(input)
-    ? input as Record<string, unknown>
-    : {};
+  const parsed = await readJsonObject<Record<string, unknown>>(request);
+  if (!parsed.ok) return parsed.response;
+  const body = parsed.data;
   const event = typeof body.event === "string" && body.event.length <= 100 ? body.event : "test";
   const payload = body.payload && typeof body.payload === "object" && !Array.isArray(body.payload)
     ? body.payload as Record<string, unknown>

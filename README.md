@@ -35,7 +35,7 @@ La definición funcional, las decisiones técnicas y el orden de construcción e
 
 ## Tecnología
 
-- Next.js 15 con App Router y React 19.
+- Next.js 16 con App Router y React 19.
 - TypeScript estricto.
 - Tailwind CSS 4.
 - Supabase Auth, PostgreSQL, Storage y RLS.
@@ -48,11 +48,11 @@ La definición funcional, las decisiones técnicas y el orden de construcción e
 
 Requisitos:
 
-- Node.js 22, definido en `.node-version`.
+- Node.js 22, definido en `.node-version` (Node 24 también es compatible).
 - Una instancia de Supabase para usar los flujos autenticados.
 
 ```bash
-npm install
+npm ci
 ```
 
 Crea `.env.local` a partir de `.env.example` y completa, como mínimo, las variables públicas de Supabase. OpenAI, Meta y Stripe son integraciones opcionales para el arranque local.
@@ -69,7 +69,9 @@ La aplicación estará disponible normalmente en [http://localhost:3000](http://
 npm run lint
 npm run typecheck
 npm run test
+npm run deadcode
 npm run build
+npm run audit
 ```
 
 Para ejecutar todas las comprobaciones:
@@ -110,6 +112,7 @@ La evolución prevista mantiene un monolito modular: las rutas de `src/app` ser�
 - [Arquitectura y roadmap](docs/ARQUITECTURA-Y-ROADMAP-WIASOCIAL-2026.md)
 - [Arquitectura de IA y orquestación](docs/ARQUITECTURA-IA-Y-ORQUESTACION-WIASOCIAL-2026.md)
 - [Auditoría técnica](docs/AUDITORIA-TECNICA-WIASOCIAL-2026.md)
+- [Revisión técnica previa a la siguiente fase](docs/REVISION-TECNICA-PREFASE-2026-07-29.md)
 - [Estudio de mercado multicanal](docs/ESTUDIO-MERCADO-MULTICANAL-WIASOCIAL-2026.md)
 - [Módulo 1: Content Studio](docs/modulos/01-content-studio-premium/README.md)
 - [Módulo 2: perfil y memoria de marca](docs/modulos/02-perfil-marca-memoria-base/README.md)

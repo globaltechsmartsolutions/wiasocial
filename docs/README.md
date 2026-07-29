@@ -9,6 +9,7 @@ Este directorio separa las decisiones vigentes de los estudios que sirven como e
 | [Arquitectura y roadmap](ARQUITECTURA-Y-ROADMAP-WIASOCIAL-2026.md) | Fuente de verdad para producto, arquitectura, fases y criterios de salida | Vigente |
 | [Arquitectura de IA y orquestación](ARQUITECTURA-IA-Y-ORQUESTACION-WIASOCIAL-2026.md) | Workflow determinista, contexto, modelos, imagen, evaluación, costes, trabajos duraderos y decisión sobre n8n | Revisión 2 vigente |
 | [Auditoría técnica](AUDITORIA-TECNICA-WIASOCIAL-2026.md) | Riesgos y deuda del repositorio antes de la estabilización | Referencia de partida |
+| [Revisión técnica previa a la siguiente fase](REVISION-TECNICA-PREFASE-2026-07-29.md) | Evidencia de limpieza, endurecimiento, comprobaciones y límites externos | Vigente |
 | [Estudio multicanal](ESTUDIO-MERCADO-MULTICANAL-WIASOCIAL-2026.md) | Mercado, competidores, posicionamiento y oportunidad | Vigente |
 | [Estudio inicial](ESTUDIO-MERCADO-WIASOCIAL-2026.md) | Hipótesis inicial centrada en Instagram | Histórico |
 | [Masterplan anterior](WIASOCIAL-MASTERPLAN.md) | Visión previa del producto | Histórico, no normativo |

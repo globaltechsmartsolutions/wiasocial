@@ -5,6 +5,7 @@ import { buildUserAIContext } from "@/lib/ai-context";
 import { openai, isOpenAIConfigured } from "@/lib/openai";
 import { getSupabaseForUser } from "@/lib/supabase-admin";
 import type { MonthlyMarketingPlan } from "@/types/marketing-os";
+import { readJsonObject } from "@/lib/request-validation";
 
 const PLAN_PROMPT = `You are a senior digital marketing strategist building a monthly Instagram marketing plan. Use only the provided context. Think in terms of positioning, ICP, offer, funnel stage, content pillars, conversion assets, experiments and KPIs.
 
@@ -53,15 +54,16 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  if (!isOpenAIConfigured()) return NextResponse.json({ error: "OpenAI no configurada" }, { status: 503 });
-
   const token = getAccessTokenFromRequest(request);
   const user = await getUserFromAccessToken(token);
   if (!user || !token) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const limited = await enforceUserRateLimit(request, user.id, "marketing-plan", 10, 60 * 60 * 1000);
   if (limited) return limited;
+  if (!isOpenAIConfigured()) return NextResponse.json({ error: "OpenAI no configurada" }, { status: 503 });
 
-  const { locale = "es", objective = "leads", force = false } = await request.json().catch(() => ({}));
+  const parsed = await readJsonObject<{ locale?: string; objective?: string; force?: boolean }>(request);
+  if (!parsed.ok) return parsed.response;
+  const { locale = "es", objective = "leads", force = false } = parsed.data;
   const month = getMonthStartDate();
   const sb = getSupabaseForUser(token);
 

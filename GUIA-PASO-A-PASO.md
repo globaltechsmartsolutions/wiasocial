@@ -1,110 +1,43 @@
-# Guía paso a paso (sin conocimientos técnicos)
+# Guía Paso A Paso
 
-## PARTE 1 — Conectar Supabase (15 minutos)
+## 1. Preparar El Equipo
 
-### Paso 1: Abre Supabase
-1. Ve a https://supabase.com/dashboard
-2. Entra en **tu proyecto**
+1. Instala Node.js 22.
+2. Abre PowerShell o Terminal dentro de la carpeta del proyecto.
+3. Ejecuta `npm ci`.
+4. Copia `.env.example` y renombra la copia como `.env.local`.
 
-### Paso 2: Crea las tablas
-1. Menú izquierdo → **SQL Editor**
-2. Clic en **New query**
-3. En tu Mac, abre el archivo `supabase/schema.sql` de este proyecto
-4. Copia **todo** el contenido (Cmd+A, Cmd+C)
-5. Pégalo en Supabase (Cmd+V)
-6. Clic en **Run** (abajo a la derecha)
-7. Debe decir "Success"
+## 2. Conectar Un Supabase De Desarrollo
 
-### Paso 3: Copia tus claves
-1. Menú izquierdo → **Project Settings** (engranaje)
-2. Clic en **API**
-3. Copia estos dos valores (botón copiar al lado):
-   - **Project URL** → algo como `https://abcdefgh.supabase.co`
-   - **anon public** → empieza por `eyJ...`
+1. Entra en el panel del proyecto Supabase que vaya a usarse para desarrollo o staging.
+2. Copia la URL del proyecto y la clave pública (`anon` o publishable).
+3. Rellena en `.env.local` `NEXT_PUBLIC_SUPABASE_URL` y `NEXT_PUBLIC_SUPABASE_ANON_KEY`.
+4. Si debes crear o actualizar el esquema, añade las credenciales de base de datos indicadas en `.env.example`, confirma que no apuntan a producción y ejecuta `npm run migrate:all`.
 
-### Paso 4: Pega las claves en el proyecto
-1. En tu Mac, abre la carpeta `wia-instagram-growth-os` en el Escritorio
-2. Abre el archivo `.env.local` con TextEdit o Cursor
-3. Sustituye las líneas por tus datos reales:
+La clave pública puede llegar al navegador; la protección real de los datos la aplica RLS. La clave `SUPABASE_SERVICE_ROLE_KEY` evita RLS y solo puede existir en el servidor. No la pegues en chats, documentos ni archivos que vayan a Git.
 
-```
-NEXT_PUBLIC_SUPABASE_URL=https://TU-URL-AQUI.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJ...TU-KEY-AQUI
-OPENAI_API_KEY=your_openai_api_key
-```
-
-4. Guarda el archivo (Cmd+S)
-
-### Paso 5: Arranca la app
-1. Abre **Terminal** en Mac o **PowerShell** en Windows
-2. Pega esto y pulsa Enter:
+## 3. Abrir La Aplicación
 
 ```bash
-cd RUTA-DE-TU-PROYECTO
-npm run dev
+npm run dev:local
 ```
 
-3. Abre el navegador en: **http://localhost:3000**
-4. Crea tu cuenta (email + contraseña)
-5. ¡Listo! Ya funciona en tu ordenador.
+Abre [http://localhost:3000](http://localhost:3000). Desde `/login` puedes crear una cuenta si el proyecto Supabase permite registros y tiene configuradas sus URL de redirección.
 
----
+## 4. Activar Integraciones Opcionales
 
-## PARTE 2 — Subir a Railway (opcional, cuando quieras estar online)
+- OpenAI o Gemini: generación de contenido y herramientas de IA.
+- Instagram/Meta: conexión, sincronización y publicación con una aplicación autorizada.
+- Stripe: suscripciones, checkout y webhook de facturación.
 
-### Paso A: Subir código a GitHub
+Las variables necesarias están documentadas como marcadores en `.env.example`. Cada credencial pertenece al proyecto externo que la emitió; tener el código no concede acceso automático a esos servicios.
 
-1. Ve a https://github.com/new
-2. Nombre del repo: `wia-instagram-growth-os`
-3. Deja todo en **Private** si quieres
-4. **No** marques "Add README"
-5. Clic **Create repository**
-
-6. En Terminal, pega esto (cambia TU-USUARIO por tu usuario de GitHub):
+## 5. Comprobar Antes De Continuar
 
 ```bash
-cd ~/Desktop/wia-instagram-growth-os
-git init
-git add .
-git commit -m "Initial commit"
-git branch -M main
-git remote add origin https://github.com/TU-USUARIO/wia-instagram-growth-os.git
-git push -u origin main
+npm run check
 ```
 
-(GitHub te pedirá usuario y contraseña o token)
+No subas `.env.local`. En Railway u otro proveedor, configura las variables desde el panel del servicio y añade la URL pública a las URL permitidas de Supabase, Meta y Stripe según corresponda.
 
-### Paso B: Conectar Railway
-
-1. Ve a https://railway.app
-2. **New Project** → **Deploy from GitHub repo**
-3. Elige `wia-instagram-growth-os`
-4. Espera que empiece a construir
-
-### Paso C: Variables en Railway
-
-1. Clic en tu servicio (el recuadro del proyecto)
-2. Pestaña **Variables**
-3. Añade las mismas 3 que en `.env.local`:
-   - `NEXT_PUBLIC_SUPABASE_URL`
-   - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-   - `OPENAI_API_KEY`
-4. Railway redesplegará solo
-
-### Paso D: URL pública
-
-1. Pestaña **Settings** → **Networking** → **Generate Domain**
-2. Copia la URL (ej: `https://wia-instagram.up.railway.app`)
-
-### Paso E: Permitir login en Supabase
-
-1. Supabase → **Authentication** → **URL Configuration**
-2. **Site URL:** pega tu URL de Railway
-3. **Redirect URLs:** añade `https://tu-url.up.railway.app/**`
-4. Guarda
-
----
-
-## ¿Necesitas ayuda?
-
-Dime en qué paso estás atascado (1, 2, 3...) y te guío.
+La guía técnica ampliada está en [SETUP.md](SETUP.md) y la configuración específica de Instagram en [INSTAGRAM_SETUP.md](INSTAGRAM_SETUP.md).

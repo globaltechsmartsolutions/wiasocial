@@ -34,7 +34,6 @@ export interface MonthlyMarketingPlan {
   }[];
   risks: string[];
 }
-
 export interface InstagramFunnelPlan {
   offer: string;
   targetAudience: string;
@@ -74,19 +73,4 @@ export interface InstagramFunnelPlan {
   }[];
   callScript: string[];
   successMetrics: string[];
-}
-
-export interface MarketingPlanRecord {
-  id: string;
-  planMonth: string;
-  plan: MonthlyMarketingPlan;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface FunnelRecord {
-  id: string;
-  funnel: InstagramFunnelPlan;
-  createdAt: string;
-  updatedAt: string;
 }

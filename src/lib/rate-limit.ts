@@ -1,5 +1,8 @@
+import "server-only";
+
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
+export { userRateLimitKey } from "@/lib/rate-limit-key";
 
 interface Bucket {
   count: number;
@@ -11,7 +14,6 @@ interface RateLimitOptions {
   limit: number;
   windowMs: number;
 }
-
 interface RateLimitResult {
   ok: boolean;
   remaining: number;
@@ -90,13 +92,5 @@ export function rateLimitResponse(retryAfter: number) {
       status: 429,
       headers: { "Retry-After": String(retryAfter) },
     }
-  );
-}
-
-export function getClientIp(request: Request): string {
-  return (
-    request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
-    request.headers.get("x-real-ip") ||
-    "unknown"
   );
 }

@@ -5,6 +5,7 @@ import { scoreInstagramProfile } from "@/lib/audit-scoring";
 import { openai, isOpenAIConfigured } from "@/lib/openai";
 import { getSupabaseForUser } from "@/lib/supabase-admin";
 import type { AuditAIReport, AuditProfileInput } from "@/types/audit";
+import { readJsonObject } from "@/lib/request-validation";
 
 const AUDIT_SYSTEM_PROMPT = `Actúa como un director de marketing digital especializado en Instagram, marca personal, agencias y captación de leads. Analiza el siguiente perfil con criterio profesional. No inventes datos. Usa únicamente la información proporcionada. Da recomendaciones concretas, directas y accionables para mejorar autoridad, claridad, conversión y captación de clientes.
 
@@ -60,20 +61,26 @@ export async function POST(request: Request) {
   const limited = await enforceUserRateLimit(request, user.id, "instagram-audit", 20, 60 * 60 * 1000);
   if (limited) return limited;
 
-  const usageBlocked = await enforceAIUsage(user.id, token);
-  if (usageBlocked) return usageBlocked;
-
   try {
-    const body = await request.json();
-    const input = body.input as AuditProfileInput;
-    const locale = (body.locale as string) ?? "es";
-    const skipAI = Boolean(body.skipAI);
+    const parsed = await readJsonObject<{
+      input?: AuditProfileInput;
+      locale?: string;
+      skipAI?: boolean;
+    }>(request);
+    if (!parsed.ok) return parsed.response;
+    const input = parsed.data.input;
+    const locale = parsed.data.locale ?? "es";
+    const skipAI = Boolean(parsed.data.skipAI);
 
     if (!input?.username?.trim()) {
       return NextResponse.json({ error: "Username requerido" }, { status: 400 });
     }
 
     const scores = scoreInstagramProfile(input);
+    if (!skipAI && isOpenAIConfigured()) {
+      const usageBlocked = await enforceAIUsage(user.id, token);
+      if (usageBlocked) return usageBlocked;
+    }
     const aiReport = skipAI ? null : await generateAIReport(input, scores, locale);
 
     const sb = getSupabaseForUser(token);

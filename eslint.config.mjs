@@ -1,19 +1,26 @@
-import { dirname } from "path";
-import { fileURLToPath } from "url";
-import { FlatCompat } from "@eslint/eslintrc";
+import { defineConfig, globalIgnores } from "eslint/config";
+import nextVitals from "eslint-config-next/core-web-vitals";
+import nextTypeScript from "eslint-config-next/typescript";
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-
-const compat = new FlatCompat({
-  baseDirectory: __dirname,
-});
-
-const eslintConfig = [
+const eslintConfig = defineConfig([
+  ...nextVitals,
+  ...nextTypeScript,
   {
-    ignores: [".next/**", "node_modules/**", "out/**", "coverage/**", "next-env.d.ts"],
+    // The current application deliberately loads authenticated client data in
+    // effects. React's new rule treats these established fetch-on-mount flows
+    // as synchronous derived-state effects, so keep the rule for a later data
+    // architecture migration instead of forcing risky mechanical rewrites.
+    rules: {
+      "react-hooks/set-state-in-effect": "off",
+    },
   },
-  ...compat.extends("next/core-web-vitals", "next/typescript"),
-];
+  globalIgnores([
+    ".next/**",
+    "node_modules/**",
+    "out/**",
+    "coverage/**",
+    "next-env.d.ts",
+  ]),
+]);
 
 export default eslintConfig;

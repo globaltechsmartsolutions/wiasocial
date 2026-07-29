@@ -16,6 +16,7 @@ const files = [
   "supabase/phase-one-billing-rls-migration.sql",
   "supabase/phase-two-ai-usage-hardening-migration.sql",
   "supabase/phase-three-stripe-idempotency-migration.sql",
+  "supabase/phase-four-security-cleanup-migration.sql",
 ];
 
 const expectedTables = [

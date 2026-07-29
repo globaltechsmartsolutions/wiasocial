@@ -23,28 +23,5 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Lint
-        run: npm run lint
-
-      - name: Typecheck
-        run: npm run typecheck
-
-      - name: Unit tests
-        run: npm run test
-
-      - name: Build
-        run: npm run build
-
-      # Blocking gate. Kept at "critical" because the three current high-severity
-      # advisories (postcss, sharp) are transitive from Next.js and have no
-      # non-breaking fix available. Raise this to --audit-level=high as soon as a
-      # Next.js 15.x release ships them patched.
-      - name: Audit (blocking)
-        run: npm audit --omit=dev --audit-level=critical
-
-      # Visibility only: prints the outstanding high-severity advisories without
-      # turning the build red, so they stay in sight instead of being forgotten.
-      - name: Audit report (high)
-        if: always()
-        continue-on-error: true
-        run: npm audit --omit=dev --audit-level=high
+      - name: Full quality gate
+        run: npm run check

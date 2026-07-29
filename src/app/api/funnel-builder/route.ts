@@ -5,6 +5,7 @@ import { buildUserAIContext } from "@/lib/ai-context";
 import { openai, isOpenAIConfigured } from "@/lib/openai";
 import { getSupabaseForUser } from "@/lib/supabase-admin";
 import type { InstagramFunnelPlan } from "@/types/marketing-os";
+import { readJsonObject } from "@/lib/request-validation";
 
 const FUNNEL_PROMPT = `You are a senior digital marketing consultant building an Instagram funnel for a creator, agency or personal brand. Use the provided business context and requested offer to build a conversion system.
 
@@ -55,15 +56,21 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  if (!isOpenAIConfigured()) return NextResponse.json({ error: "OpenAI no configurada" }, { status: 503 });
-
   const token = getAccessTokenFromRequest(request);
   const user = await getUserFromAccessToken(token);
   if (!user || !token) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const limited = await enforceUserRateLimit(request, user.id, "funnel-builder", 15, 60 * 60 * 1000);
   if (limited) return limited;
+  if (!isOpenAIConfigured()) return NextResponse.json({ error: "OpenAI no configurada" }, { status: 503 });
 
-  const body = await request.json().catch(() => ({}));
+  const parsed = await readJsonObject<{
+    locale?: string;
+    offer?: string;
+    targetAudience?: string;
+    funnelGoal?: string;
+  }>(request);
+  if (!parsed.ok) return parsed.response;
+  const body = parsed.data;
   const {
     locale = "es",
     offer = "",

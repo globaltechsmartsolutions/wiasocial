@@ -1,12 +1,11 @@
 export type GrowthRadarPriority = "high" | "medium" | "low";
 
-export interface GrowthRadarSignal {
+interface GrowthRadarSignal {
   label: string;
   value: string;
   interpretation: string;
 }
-
-export interface GrowthRadarRecommendation {
+interface GrowthRadarRecommendation {
   title: string;
   priority: GrowthRadarPriority;
   why: string;
@@ -14,7 +13,7 @@ export interface GrowthRadarRecommendation {
   expectedImpact: string;
 }
 
-export interface GrowthRadarExperiment {
+interface GrowthRadarExperiment {
   name: string;
   hypothesis: string;
   steps: string[];
@@ -38,12 +37,4 @@ export interface GrowthRadarReport {
   engagementPlay: string;
   leadPlay: string;
   riskAlerts: string[];
-}
-
-export interface GrowthRadarRecord {
-  id: string;
-  reportWeek: string;
-  report: GrowthRadarReport;
-  createdAt: string;
-  updatedAt: string;
 }

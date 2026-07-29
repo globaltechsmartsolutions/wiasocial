@@ -24,17 +24,18 @@ interface AuthContextValue {
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
+function authErrorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : "No se ha podido completar la autenticación";
+}
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
+  const configured = isSupabaseConfigured();
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
-  const [loading, setLoading] = useState(true);
-  const configured = isSupabaseConfigured();
+  const [loading, setLoading] = useState(configured);
 
   useEffect(() => {
-    if (!configured) {
-      setLoading(false);
-      return;
-    }
+    if (!configured) return;
 
     let active = true;
     let subscription: { unsubscribe: () => void } | null = null;
@@ -77,8 +78,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [configured]);
 
   const signIn = useCallback(async (email: string, password: string) => {
-    const { error } = await getSupabase().auth.signInWithPassword({ email, password });
-    return { error: error?.message ?? null };
+    try {
+      const { error } = await getSupabase().auth.signInWithPassword({ email, password });
+      return { error: error?.message ?? null };
+    } catch (error) {
+      return { error: authErrorMessage(error) };
+    }
   }, []);
 
   const signUp = useCallback(async (email: string, password: string) => {
@@ -87,12 +92,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         ? `${window.location.origin}/auth/callback`
         : undefined;
 
-    const { error } = await getSupabase().auth.signUp({
-      email,
-      password,
-      options: { emailRedirectTo: redirectTo },
-    });
-    return { error: error?.message ?? null };
+    try {
+      const { error } = await getSupabase().auth.signUp({
+        email,
+        password,
+        options: { emailRedirectTo: redirectTo },
+      });
+      return { error: error?.message ?? null };
+    } catch (error) {
+      return { error: authErrorMessage(error) };
+    }
   }, []);
 
   const signInWithInstagram = useCallback(async (redirect = "/dashboard") => {
@@ -102,15 +111,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         ? `${window.location.origin}/auth/callback?redirect=${encodeURIComponent(safeRedirect)}`
         : undefined;
 
-    const { error } = await getSupabase().auth.signInWithOAuth({
-      provider: "facebook",
-      options: {
-        redirectTo,
-        scopes: "email,public_profile",
-      },
-    });
+    try {
+      const { error } = await getSupabase().auth.signInWithOAuth({
+        provider: "facebook",
+        options: {
+          redirectTo,
+          scopes: "email,public_profile",
+        },
+      });
 
-    return { error: error?.message ?? null };
+      return { error: error?.message ?? null };
+    } catch (error) {
+      return { error: authErrorMessage(error) };
+    }
   }, []);
 
   const signOut = useCallback(async () => {

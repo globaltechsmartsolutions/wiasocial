@@ -4,6 +4,7 @@ import { enforceAIUsage } from "@/lib/ai-usage-guard";
 import { buildUserAIContext } from "@/lib/ai-context";
 import { openai, isOpenAIConfigured } from "@/lib/openai";
 import { getSupabaseForUser } from "@/lib/supabase-admin";
+import { readJsonObject } from "@/lib/request-validation";
 
 export async function GET(request: Request) {
   const token = getAccessTokenFromRequest(request);
@@ -22,17 +23,18 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  if (!isOpenAIConfigured()) {
-    return NextResponse.json({ error: "OpenAI no configurada" }, { status: 503 });
-  }
-
   const token = getAccessTokenFromRequest(request);
   const user = await getUserFromAccessToken(token);
   if (!user || !token) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const limited = await enforceUserRateLimit(request, user.id, "daily-brief", 12, 60 * 60 * 1000);
   if (limited) return limited;
+  if (!isOpenAIConfigured()) {
+    return NextResponse.json({ error: "OpenAI no configurada" }, { status: 503 });
+  }
 
-  const { locale = "es", force = false } = await request.json().catch(() => ({ locale: "es", force: false }));
+  const parsed = await readJsonObject<{ locale?: string; force?: boolean }>(request);
+  if (!parsed.ok) return parsed.response;
+  const { locale = "es", force = false } = parsed.data;
   const today = new Date().toISOString().split("T")[0];
   const sb = getSupabaseForUser(token);
 

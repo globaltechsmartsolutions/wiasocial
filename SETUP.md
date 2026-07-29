@@ -1,50 +1,57 @@
-# WIA Instagram Growth OS — Setup Guide
+# Puesta En Marcha De WIASocial
 
-## 1. Supabase (base de datos + auth)
+Esta guía describe el arranque local actual. No copies credenciales en el repositorio: `.env.local` está ignorado por Git y debe permanecer en cada equipo o en el gestor de variables del despliegue.
 
-1. Crea un proyecto gratis en [supabase.com](https://supabase.com)
-2. Ve a **SQL Editor** → pega y ejecuta `supabase/schema.sql`
-3. Ve a **Settings → API** y copia:
-   - Project URL
-   - `anon` public key
+## Requisitos
 
-## 2. OpenAI (IA real)
+- Node.js 22 (versión fijada en `.node-version`). Node 24 también es compatible.
+- Acceso a un proyecto Supabase de desarrollo o staging para probar autenticación y persistencia.
+- Las credenciales de OpenAI, Instagram y Stripe solo son necesarias para probar esas integraciones.
 
-1. Crea una API key en [platform.openai.com/api-keys](https://platform.openai.com/api-keys)
-
-## 3. Configurar .env.local
-
-```env
-NEXT_PUBLIC_SUPABASE_URL=https://xxxxx.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOi...
-OPENAI_API_KEY=sk-...
-```
-
-## 4. Arrancar
+## Instalación
 
 ```bash
-npm run dev
+npm ci
 ```
 
-Alternativa compatible con Windows y macOS, instalando dependencias si faltan:
+Copia `.env.example` como `.env.local` y sustituye únicamente los marcadores que vayas a usar. Para levantar la interfaz y autenticar usuarios hacen falta, como mínimo:
+
+```env
+NEXT_PUBLIC_SUPABASE_URL=https://your-project-ref.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-supabase-anon-key
+NEXT_PUBLIC_APP_URL=http://localhost:3000
+```
+
+La clave `anon` está diseñada para el navegador y su seguridad depende de Row Level Security. `SUPABASE_SERVICE_ROLE_KEY`, claves de IA, secretos de Stripe y secretos de Instagram son credenciales de servidor: nunca deben llevar el prefijo `NEXT_PUBLIC_` ni copiarse a documentación o commits.
+
+## Base De Datos
+
+El esquema completo y sus migraciones versionadas se aplican con:
+
+```bash
+npm run migrate:all
+```
+
+Este comando modifica la base configurada. Ejecútalo primero en desarrollo o staging y confirma el destino antes de usarlo. No es necesario para ver las páginas públicas, pero sí para validar todos los flujos persistentes.
+
+## Arranque
 
 ```bash
 npm run dev:local
 ```
 
-Abre http://localhost:3000 → crea tu cuenta → empieza a usar datos reales.
+Abre [http://localhost:3000](http://localhost:3000). Si Supabase no está configurado correctamente, la pantalla de acceso mostrará un aviso en lugar de intentar autenticar con valores de ejemplo.
 
-## Qué es real ahora
+## Verificación
 
-| Feature | Fuente |
-|---------|--------|
-| Leads, analíticas, seguidores | Supabase (tu cuenta) |
-| Configuración de marca | Supabase |
-| Calendario, guiones, stories | OpenAI + guardado en Supabase |
-| Analizador de ganchos, hashtags | OpenAI en tiempo real |
-| Engagement diario | OpenAI genera plan + guardas progreso |
-| Competidores | OpenAI analiza + guardas en DB |
+```bash
+npm run check
+```
 
-## Nota sobre Instagram
+La comprobación completa ejecuta lint, TypeScript, pruebas, detección de código muerto, compilación de producción y auditoría de dependencias.
 
-Los datos de Instagram (seguidores, métricas) los introduces **manualmente** desde Instagram Insights. La conexión directa con Instagram API requiere cuenta Business + aprobación de Meta.
+Para borrar exclusivamente artefactos regenerables del proyecto:
+
+```bash
+npm run clean
+```

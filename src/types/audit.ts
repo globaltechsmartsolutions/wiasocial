@@ -1,6 +1,6 @@
-export type ProfilePhotoQuality = "professional" | "unclear" | "casual" | "missing";
+type ProfilePhotoQuality = "professional" | "unclear" | "casual" | "missing";
 
-export type OfferClarity = "clear" | "vague" | "none";
+type OfferClarity = "clear" | "vague" | "none";
 
 export interface AuditProfileInput {
   displayName: string;
@@ -57,15 +57,6 @@ export interface AuditAIReport {
   reelHooks: string[];
   commercialCTAs: string[];
   sevenDayPlan: string[];
-}
-
-export interface InstagramAuditRecord {
-  id: string;
-  instagramUsername: string;
-  inputData: AuditProfileInput;
-  scores: AuditScoringResult;
-  aiReport: AuditAIReport | null;
-  createdAt: string;
 }
 
 export const DEMO_AUDIT_INPUT: AuditProfileInput = {

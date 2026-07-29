@@ -1,3 +1,5 @@
+import "server-only";
+
 import { NextResponse } from "next/server";
 import { checkAndIncrementAIUsage, UsageBackendError, UsageLimitError } from "@/lib/ai-usage";
 

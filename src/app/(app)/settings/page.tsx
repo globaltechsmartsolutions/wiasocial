@@ -14,7 +14,6 @@ import { useTranslation } from "@/lib/i18n/LanguageProvider";
 import { useAuth } from "@/contexts/AuthContext";
 import { fetchSettings, saveSettings, fetchWebhookUrl, saveWebhookUrl } from "@/lib/db";
 import { countBrandMemoryFields, defaultBrandMemory } from "@/lib/brand-memory";
-import { isOpenAIConfigured } from "@/lib/openai";
 import { isSupabaseConfigured, getSupabase } from "@/lib/supabase";
 import { InstagramConnectCard } from "@/components/settings/InstagramConnectCard";
 import type { BrandMemory, ContentGoal, ContentTone, UserSettings } from "@/types";
@@ -98,11 +97,19 @@ export default function SettingsPage() {
   const [saved, setSaved] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [openaiOk, setOpenaiOk] = useState(false);
 
   useEffect(() => {
     if (!user) return;
     fetchSettings(user.id).then((s) => { if (s) setSettings(s); setLoading(false); });
   }, [user]);
+
+  useEffect(() => {
+    fetch("/api/health")
+      .then((response) => response.json())
+      .then((health) => setOpenaiOk(Boolean(health?.checks?.openai)))
+      .catch(() => setOpenaiOk(false));
+  }, []);
 
   const toneOptions = (["luxury", "professional", "aggressive", "educational"] as ContentTone[]).map((tone) => ({ value: tone, label: t.tone[tone] }));
   const goalOptions = (["followers", "leads", "sales"] as ContentGoal[]).map((goal) => ({ value: goal, label: t.goalLabel[goal] }));
@@ -134,7 +141,6 @@ export default function SettingsPage() {
     }
   };
 
-  const openaiOk = isOpenAIConfigured();
   const supabaseOk = isSupabaseConfigured();
 
   const [webhookUrl, setWebhookUrl] = useState("");

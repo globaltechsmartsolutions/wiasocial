@@ -4,6 +4,8 @@ import { enforceAIUsage } from "@/lib/ai-usage-guard";
 import { buildUserAIContext, type UserAIContext } from "@/lib/ai-context";
 import { buildTemplateRouterPromptContext, routeContentTemplate } from "@/lib/content-template-router";
 import { openai, isOpenAIConfigured } from "@/lib/openai";
+import { isConfiguredEnvValue } from "@/lib/env";
+import { readJsonObject } from "@/lib/request-validation";
 
 type AIAction =
   | "content"
@@ -19,6 +21,26 @@ type AIAction =
   | "engagement-targets"
   | "best-times"
   | "competitor-analyze";
+
+const AI_ACTIONS = new Set<AIAction>([
+  "content",
+  "reel-script",
+  "stories",
+  "hook-analyze",
+  "hashtags",
+  "profile-audit",
+  "calendar",
+  "content-series",
+  "format-adapt",
+  "engagement-plan",
+  "engagement-targets",
+  "best-times",
+  "competitor-analyze",
+]);
+
+function isAIAction(value: unknown): value is AIAction {
+  return typeof value === "string" && AI_ACTIONS.has(value as AIAction);
+}
 
 const MARKETING_CONTEXT =
   "Act like a senior digital marketing professional. Prioritize positioning, ICP clarity, funnel stage, offer relevance, conversion intent, measurable KPIs and legal organic growth. Avoid generic advice, bots, spam, fake engagement or unverifiable claims.";
@@ -50,8 +72,7 @@ function getGeminiKey() {
 }
 
 function isGeminiConfigured(): boolean {
-  const key = getGeminiKey();
-  return key !== "" && key !== "your_google_generative_ai_api_key" && key !== "your_gemini_api_key";
+  return isConfiguredEnvValue(getGeminiKey());
 }
 
 function parseJsonObject(text: string) {
@@ -252,11 +273,13 @@ export async function POST(request: Request) {
     const limited = await enforceUserRateLimit(request, user.id, "api-ai", 30, 60 * 60 * 1000);
     if (limited) return limited;
 
-    const usageBlocked = await enforceAIUsage(user.id, token);
-    if (usageBlocked) return usageBlocked;
-
-    const body = await request.json();
-    const { action, locale = "es", ...params } = body as { action: AIAction; locale?: string; [key: string]: unknown };
+    const parsed = await readJsonObject<{ action?: unknown; locale?: string; [key: string]: unknown }>(request);
+    if (!parsed.ok) return parsed.response;
+    const { action: rawAction, locale = "es", ...params } = parsed.data;
+    if (!isAIAction(rawAction)) {
+      return NextResponse.json({ error: "Acción de IA no válida" }, { status: 400 });
+    }
+    const action = rawAction;
     const canUseGeminiForContent = action === "content" && isGeminiConfigured();
 
     if (!isOpenAIConfigured() && !canUseGeminiForContent) {
@@ -265,6 +288,9 @@ export async function POST(request: Request) {
         { status: 503 }
       );
     }
+
+    const usageBlocked = await enforceAIUsage(user.id, token);
+    if (usageBlocked) return usageBlocked;
 
     const context = await buildUserAIContext(user.id, token);
 

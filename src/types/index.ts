@@ -66,16 +66,7 @@ export interface EngagementTarget {
   lastEngaged: string | null;
 }
 
-export interface FollowUp {
-  id: string;
-  leadId: string;
-  leadUsername: string;
-  dueDate: string;
-  note: string;
-  completed: boolean;
-}
-
-export interface GeneratedContent {
+interface GeneratedContent {
   hook: string;
   reelScript: string;
   caption: string;
@@ -85,7 +76,7 @@ export interface GeneratedContent {
   dmReplyTemplate: string;
 }
 
-export interface PremiumContentStrategy {
+interface PremiumContentStrategy {
   angle: string;
   promise: string;
   audiencePain: string;
@@ -94,7 +85,7 @@ export interface PremiumContentStrategy {
   whyThisWillWork: string;
 }
 
-export interface PremiumPrimaryPiece {
+interface PremiumPrimaryPiece {
   title: string;
   hook: string;
   caption: string;
@@ -127,7 +118,7 @@ export interface PremiumStorySlide {
   cta: string;
 }
 
-export interface PremiumVisualDirection {
+interface PremiumVisualDirection {
   template: string;
   mood: string;
   palette: string[];
@@ -135,7 +126,7 @@ export interface PremiumVisualDirection {
   assetPrompts: string[];
 }
 
-export interface PremiumQualityReview {
+interface PremiumQualityReview {
   score: number;
   strengths: string[];
   risks: string[];
@@ -152,23 +143,6 @@ export interface PremiumGeneratedContent extends GeneratedContent {
   dmFollowUp: string;
   visualDirection: PremiumVisualDirection;
   qualityReview: PremiumQualityReview;
-}
-
-export interface ReelScript {
-  id: string;
-  title: string;
-  hook: string;
-  script: string;
-  duration: string;
-  niche: string;
-  createdAt: string;
-}
-
-export interface StorySet {
-  id: string;
-  idea: string;
-  stories: { slide: number; content: string; type: string }[];
-  createdAt: string;
 }
 
 export interface BrandMemory {

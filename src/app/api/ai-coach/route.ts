@@ -4,6 +4,7 @@ import { enforceAIUsage } from "@/lib/ai-usage-guard";
 import { buildUserAIContext } from "@/lib/ai-context";
 import { openai, isOpenAIConfigured } from "@/lib/openai";
 import { getSupabaseForUser } from "@/lib/supabase-admin";
+import { readJsonObject } from "@/lib/request-validation";
 
 const COACH_SYSTEM = `You are WIA Growth Coach — a senior digital marketing consultant and Instagram growth strategist for creators, agencies and personal brands. Think like a professional marketer: diagnose the business goal, ICP, offer, funnel stage, positioning, content angle, conversion path and measurable KPI before recommending tactics. You have access to the user's real data context, including the latest AI Growth Radar when available. Use that radar as the strategic source of truth for priorities, experiments and recommendations. Be direct, actionable, and specific. Give practical marketing advice with clear next steps, test ideas, success metrics and conversion logic. Never suggest bots, fake followers, automated mass engagement, scraping or spam. Focus on positioning, content strategy, authority, lead generation, conversion and legal organic growth. Keep answers concise unless asked for detail.`;
 
@@ -24,18 +25,19 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  if (!isOpenAIConfigured()) {
-    return NextResponse.json({ error: "OpenAI no configurada" }, { status: 503 });
-  }
-
   const token = getAccessTokenFromRequest(request);
   const user = await getUserFromAccessToken(token);
   if (!user || !token) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const limited = await enforceUserRateLimit(request, user.id, "ai-coach", 40, 60 * 60 * 1000);
   if (limited) return limited;
+  if (!isOpenAIConfigured()) {
+    return NextResponse.json({ error: "OpenAI no configurada" }, { status: 503 });
+  }
 
   try {
-    const { message, locale = "es" } = await request.json() as { message: string; locale?: string };
+    const parsed = await readJsonObject<{ message?: string; locale?: string }>(request);
+    if (!parsed.ok) return parsed.response;
+    const { message, locale = "es" } = parsed.data;
     if (!message?.trim()) return NextResponse.json({ error: "Mensaje vacío" }, { status: 400 });
 
     const sb = getSupabaseForUser(token);

@@ -42,16 +42,16 @@ export async function syncInstagramDataForUser(
       ? fetchIgLoginProfile(connection.ig_user_id, connection.access_token)
       : fetchInstagramFullProfile(connection.ig_user_id, connection.access_token),
     useIgLogin
-      ? fetchIgLoginAccountInsights(connection.ig_user_id, connection.access_token)
+      ? fetchIgLoginAccountInsights(connection.access_token)
       : fetchInstagramAccountInsights(connection.ig_user_id, connection.access_token),
     useIgLogin
-      ? fetchIgLoginAudienceInsights(connection.ig_user_id, connection.access_token)
+      ? fetchIgLoginAudienceInsights(connection.access_token)
       : fetchInstagramAudienceInsights(connection.ig_user_id, connection.access_token),
     useIgLogin
-      ? fetchIgLoginStories(connection.ig_user_id, connection.access_token)
+      ? fetchIgLoginStories(connection.access_token)
       : fetchInstagramStories(connection.ig_user_id, connection.access_token),
     useIgLogin
-      ? fetchIgLoginMedia(connection.ig_user_id, connection.access_token, 100)
+      ? fetchIgLoginMedia(connection.access_token, 100)
       : fetchInstagramMedia(connection.ig_user_id, connection.access_token, 100),
   ]);
 
@@ -170,3 +170,4 @@ export async function syncInstagramDataForUser(
     storiesLoaded: stories.length,
   };
 }
+import "server-only";

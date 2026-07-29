@@ -4,19 +4,21 @@ import { enforceAIUsage } from "@/lib/ai-usage-guard";
 import { buildUserAIContext } from "@/lib/ai-context";
 import { openai, isOpenAIConfigured } from "@/lib/openai";
 import { getSupabaseForUser } from "@/lib/supabase-admin";
+import { readJsonObject } from "@/lib/request-validation";
 
 export async function POST(request: Request) {
-  if (!isOpenAIConfigured()) {
-    return NextResponse.json({ error: "OpenAI no configurada" }, { status: 503 });
-  }
-
   const token = getAccessTokenFromRequest(request);
   const user = await getUserFromAccessToken(token);
   if (!user || !token) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const limited = await enforceUserRateLimit(request, user.id, "lead-iq", 40, 60 * 60 * 1000);
   if (limited) return limited;
+  if (!isOpenAIConfigured()) {
+    return NextResponse.json({ error: "OpenAI no configurada" }, { status: 503 });
+  }
 
-  const { lead, locale = "es" } = await request.json();
+  const parsed = await readJsonObject<{ lead?: { id?: string }; locale?: string }>(request);
+  if (!parsed.ok) return parsed.response;
+  const { lead, locale = "es" } = parsed.data;
   if (!lead?.id) return NextResponse.json({ error: "Lead requerido" }, { status: 400 });
 
   const context = await buildUserAIContext(user.id, token);

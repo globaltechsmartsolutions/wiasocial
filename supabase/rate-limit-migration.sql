@@ -10,6 +10,10 @@ CREATE TABLE IF NOT EXISTS rate_limits (
 
 ALTER TABLE rate_limits ENABLE ROW LEVEL SECURITY;
 
+REVOKE ALL ON rate_limits FROM anon;
+REVOKE ALL ON rate_limits FROM authenticated;
+GRANT ALL ON rate_limits TO service_role;
+
 CREATE OR REPLACE FUNCTION public.check_rate_limit(
   p_key TEXT,
   p_limit INTEGER,

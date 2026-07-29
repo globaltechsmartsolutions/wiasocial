@@ -67,6 +67,7 @@ Copia de **Business login settings**:
 
 Solicita en App Review (o Development con testers):
 - `instagram_business_basic`
+- `instagram_business_content_publish`
 - `instagram_business_manage_insights`
 - `instagram_business_manage_comments`
 
@@ -88,9 +89,13 @@ No uses `META_APP_ID` / `NEXT_PUBLIC_META_APP_ID` para este flujo. Deben ser las
 
 ## Paso 5 — SQL en Supabase
 
-Ejecuta (o `npm run migrate:instagram` con `SUPABASE_DB_PASSWORD` en `.env.local`):
-1. `supabase/instagram-migration.sql`
-2. `supabase/instagram-full-data-migration.sql`
+Aplica el esquema y todas las migraciones versionadas en un entorno de desarrollo o staging:
+
+```bash
+npm run migrate:all
+```
+
+Confirma el destino antes de ejecutarlo. El comando modifica la base configurada mediante `SUPABASE_DB_URL`, `DATABASE_URL` o las variables de conexión descritas en `.env.example`.
 
 ---
 

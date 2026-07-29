@@ -10,7 +10,7 @@ export async function GET() {
     instagram: isInstagramLoginConfigured(),
   };
 
-  const healthy = checks.supabase && checks.openai;
+  const healthy = checks.supabase;
 
   return NextResponse.json(
     {

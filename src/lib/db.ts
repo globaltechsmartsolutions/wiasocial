@@ -617,11 +617,3 @@ export async function saveWebhookUrl(userId: string, url: string) {
 }
 
 // ── Lead revenue tracking ─────────────────────────────────────────────────────
-
-export async function updateLeadRevenue(id: string, dealValue: number) {
-  const { error } = await getSupabase()
-    .from("leads")
-    .update({ deal_value: dealValue })
-    .eq("id", id);
-  if (error) throw error;
-}

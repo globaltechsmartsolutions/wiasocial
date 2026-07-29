@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { buildTemplateRouterPromptContext, routeContentTemplate } from "@/lib/content-template-router";
 import type { CarouselTemplateId, PremiumCarouselSlide } from "@/types";
+import { readJsonObject } from "@/lib/request-validation";
 
 type PreviewRequest = {
   topic?: string;
@@ -96,7 +97,9 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Falta GOOGLE_GENERATIVE_AI_API_KEY o GEMINI_API_KEY" }, { status: 503 });
   }
 
-  const body = await request.json().catch(() => ({})) as PreviewRequest;
+  const parsed = await readJsonObject<PreviewRequest>(request);
+  if (!parsed.ok) return parsed.response;
+  const body = parsed.data;
   const topic = body.topic?.trim() || "captar pacientes para una clínica dental premium";
   const preferredTemplateId = body.templateId && body.templateId !== "auto" ? body.templateId : "";
   const route = routeContentTemplate({ topic, preferredTemplateId });

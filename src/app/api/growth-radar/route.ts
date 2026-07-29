@@ -5,6 +5,7 @@ import { buildUserAIContext } from "@/lib/ai-context";
 import { openai, isOpenAIConfigured } from "@/lib/openai";
 import { getSupabaseForUser } from "@/lib/supabase-admin";
 import type { GrowthRadarReport } from "@/types/growth-radar";
+import { readJsonObject } from "@/lib/request-validation";
 
 const RADAR_SYSTEM_PROMPT = `You are WIA Growth Radar, a senior digital marketing strategist specialized in Instagram growth, funnels, positioning and lead generation. Analyze only the provided user context and return a practical weekly growth radar with the judgment of a professional marketer.
 
@@ -57,17 +58,26 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  if (!isOpenAIConfigured()) {
-    return NextResponse.json({ error: "OpenAI no configurada" }, { status: 503 });
-  }
-
   const token = getAccessTokenFromRequest(request);
   const user = await getUserFromAccessToken(token);
   if (!user || !token) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const limited = await enforceUserRateLimit(request, user.id, "growth-radar", 10, 60 * 60 * 1000);
   if (limited) return limited;
+  if (!isOpenAIConfigured()) {
+    return NextResponse.json({ error: "OpenAI no configurada" }, { status: 503 });
+  }
 
-  const { locale = "es", force = false, manualMetrics } = await request.json().catch(() => ({ locale: "es", force: false, manualMetrics: undefined }));
+  const parsed = await readJsonObject<{
+    locale?: string;
+    force?: boolean;
+    manualMetrics?: {
+      followers?: number;
+      weeklyGain?: number;
+      engagementRate?: number;
+    };
+  }>(request);
+  if (!parsed.ok) return parsed.response;
+  const { locale = "es", force = false, manualMetrics } = parsed.data;
   const reportWeek = getWeekStartDate();
   const sb = getSupabaseForUser(token);
 

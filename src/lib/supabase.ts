@@ -1,4 +1,5 @@
 import { createClient, SupabaseClient } from "@supabase/supabase-js";
+import { isConfiguredEnvValue, isConfiguredHttpUrl } from "@/lib/env";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "";
@@ -6,13 +7,7 @@ const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "";
 let client: SupabaseClient | null = null;
 
 export function isSupabaseConfigured(): boolean {
-  return (
-    supabaseUrl !== "" &&
-    !supabaseUrl.includes("your_supabase") &&
-    (supabaseUrl.startsWith("http://") || supabaseUrl.startsWith("https://")) &&
-    supabaseAnonKey !== "" &&
-    !supabaseAnonKey.includes("your_supabase")
-  );
+  return isConfiguredHttpUrl(supabaseUrl) && isConfiguredEnvValue(supabaseAnonKey);
 }
 
 export function getSupabase(): SupabaseClient {

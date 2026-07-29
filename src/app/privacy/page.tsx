@@ -3,7 +3,7 @@ import { Zap } from "lucide-react";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Política de Privacidad — WIA Social",
+  title: "Política de Privacidad",
   description: "Política de privacidad de WIA Social. Cómo recopilamos, usamos y protegemos tus datos.",
 };
 

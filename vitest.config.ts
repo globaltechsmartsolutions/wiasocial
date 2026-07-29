@@ -7,6 +7,7 @@ export default defineConfig({
     // application modules the same way the app does.
     alias: {
       "@": fileURLToPath(new URL("./src", import.meta.url)),
+      "server-only": fileURLToPath(new URL("./tests/server-only.ts", import.meta.url)),
     },
   },
 });

@@ -1,14 +1,20 @@
 import { NextResponse } from "next/server";
-import { getAccessTokenFromRequest, getUserFromAccessToken } from "@/lib/auth-server";
+import { enforceUserRateLimit, getAccessTokenFromRequest, getUserFromAccessToken } from "@/lib/auth-server";
 import { getStripe, PLANS, isStripePlanConfigured, type PlanKey } from "@/lib/stripe";
 import { getSupabaseForUser } from "@/lib/supabase-admin";
+import { readJsonObject } from "@/lib/request-validation";
+import { getAppUrl } from "@/lib/app-url";
 
 export async function POST(request: Request) {
   const token = getAccessTokenFromRequest(request);
   const user = await getUserFromAccessToken(token);
   if (!user || !token) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const limited = await enforceUserRateLimit(request, user.id, "stripe-checkout", 10, 60 * 60 * 1000);
+  if (limited) return limited;
 
-  const body = await request.json().catch(() => ({}));
+  const parsed = await readJsonObject<{ plan?: PlanKey }>(request);
+  if (!parsed.ok) return parsed.response;
+  const body = parsed.data;
   const planKey = (body.plan as PlanKey) ?? "starter";
   const plan = PLANS[planKey];
   if (!plan) return NextResponse.json({ error: "Plan inválido" }, { status: 400 });
@@ -25,7 +31,7 @@ export async function POST(request: Request) {
     .eq("user_id", user.id)
     .maybeSingle();
 
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+  const appUrl = getAppUrl();
 
   const sessionParams: Parameters<typeof stripe.checkout.sessions.create>[0] = {
     mode: "subscription",
