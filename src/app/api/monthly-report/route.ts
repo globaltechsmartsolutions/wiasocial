@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getAccessTokenFromRequest, getUserFromAccessToken } from "@/lib/auth-server";
-import { checkAndIncrementAIUsage, UsageLimitError } from "@/lib/ai-usage";
+import { enforceAIUsage } from "@/lib/ai-usage-guard";
 import { buildUserAIContext } from "@/lib/ai-context";
 import { openai, isOpenAIConfigured } from "@/lib/openai";
 import { getSupabaseForUser } from "@/lib/supabase-admin";
@@ -72,10 +72,8 @@ export async function POST(request: Request) {
   const langInstruction = locale === "es" ? "Respond entirely in Spanish." : "Respond entirely in English.";
   const monthLabel = now.toLocaleString(locale === "es" ? "es-ES" : "en-US", { month: "long", year: "numeric" });
 
-  try { await checkAndIncrementAIUsage(user.id, token); } catch (e) {
-    if (e instanceof UsageLimitError) return NextResponse.json({ error: "USAGE_LIMIT_EXCEEDED", used: e.used, limit: e.limit }, { status: 429 });
-    throw e;
-  }
+  const usageBlocked = await enforceAIUsage(user.id, token);
+  if (usageBlocked) return usageBlocked;
 
   const completion = await openai!.chat.completions.create({
     model: "gpt-4o-mini",
@@ -83,7 +81,7 @@ export async function POST(request: Request) {
       { role: "system", content: `${REPORT_SYSTEM_PROMPT}\n\n${langInstruction}` },
       {
         role: "user",
-        content: `User context:\n${ctx}\n\nGenerate a monthly report for ${monthLabel}. Use the available data to create a comprehensive performance summary.`,
+        content: `User context:\n${JSON.stringify(ctx, null, 2)}\n\nGenerate a monthly report for ${monthLabel}. Use the available data to create a comprehensive performance summary.`,
       },
     ],
     response_format: { type: "json_object" },

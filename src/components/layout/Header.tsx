@@ -19,7 +19,7 @@ export function Header({ onMenuClick }: HeaderProps) {
   const { user, signOut } = useAuth();
   const router = useRouter();
   const [query, setQuery] = useState("");
-  const [aiUsage, setAiUsage] = useState<{ used: number; limit: number } | null>(null);
+  const [aiUsage, setAiUsage] = useState<{ used: number; limit: number; unlimited?: boolean } | null>(null);
 
   useEffect(() => {
     fetchAIUsage().then((u) => setAiUsage(u)).catch(() => null);
@@ -95,7 +95,9 @@ export function Header({ onMenuClick }: HeaderProps) {
         {aiUsage && (
           <div
             className={`hidden sm:flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-medium border ${
-              aiUsage.used >= aiUsage.limit
+              aiUsage.unlimited
+                ? "border-lime/20 bg-lime/5 text-lime"
+                : aiUsage.used >= aiUsage.limit
                 ? "border-red-500/30 bg-red-500/10 text-red-400"
                 : aiUsage.used >= aiUsage.limit - 1
                 ? "border-yellow-500/30 bg-yellow-500/10 text-yellow-400"
@@ -103,7 +105,7 @@ export function Header({ onMenuClick }: HeaderProps) {
             }`}
           >
             <Zap className="h-3 w-3" />
-            {aiUsage.used}/{aiUsage.limit === Infinity ? "∞" : aiUsage.limit} IA
+            {aiUsage.used}/{aiUsage.unlimited ? "∞" : aiUsage.limit} IA
           </div>
         )}
         <LanguageToggle />

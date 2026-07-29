@@ -1,5 +1,5 @@
--- WIA Instagram Growth OS — Full Schema
--- Run in Supabase SQL Editor: https://supabase.com/dashboard
+-- WIASocial base schema.
+-- For a complete installation, run `npm run migrate:all` from the repository.
 
 -- Leads
 CREATE TABLE IF NOT EXISTS leads (
@@ -199,8 +199,20 @@ EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 DO $$ BEGIN
   CREATE POLICY "content_own" ON generated_content FOR ALL USING (auth.uid() = user_id);
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+-- user_settings is split per command instead of FOR ALL: the billing columns added
+-- by phase-zero must not be writable by the account holder. Column privileges are
+-- granted in phase-one-billing-rls-migration.sql.
 DO $$ BEGIN
-  CREATE POLICY "settings_own" ON user_settings FOR ALL USING (auth.uid() = user_id);
+  CREATE POLICY "settings_select_own" ON user_settings
+    FOR SELECT USING (auth.uid() = user_id);
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+DO $$ BEGIN
+  CREATE POLICY "settings_insert_own" ON user_settings
+    FOR INSERT WITH CHECK (auth.uid() = user_id);
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+DO $$ BEGIN
+  CREATE POLICY "settings_update_own" ON user_settings
+    FOR UPDATE USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 DO $$ BEGIN
   CREATE POLICY "followups_own" ON follow_ups FOR ALL USING (auth.uid() = user_id);

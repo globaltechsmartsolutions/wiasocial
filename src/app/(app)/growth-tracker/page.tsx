@@ -37,7 +37,6 @@ export default function GrowthTrackerPage() {
   const monthAgo = snapshots[0];
   const weekGain = latest && weekAgo ? latest.followers - weekAgo.followers : 0;
   const monthGain = latest && monthAgo ? latest.followers - monthAgo.followers : 0;
-  const maxFollowers = Math.max(...snapshots.map((s) => s.followers), 1);
 
   const handleSync = async () => {
     setSyncing(true);
@@ -177,7 +176,7 @@ function FollowerChart({
         <path d={areaPath} fill="url(#chartGrad)" />
         <path d={linePath} fill="none" stroke="#a3e635" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
 
-        {points.map((p, i) => (
+        {points.map((p) => (
           <g key={p.s.id}>
             <circle cx={p.x} cy={p.y} r="4" fill="#a3e635" />
             <text x={p.x} y={H - 4} textAnchor="middle" fontSize="9" fill="currentColor" fillOpacity="0.5">

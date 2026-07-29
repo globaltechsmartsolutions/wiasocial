@@ -177,13 +177,6 @@ export function scoreInstagramProfile(input: AuditProfileInput): AuditScoringRes
   return { growthScore, subscores, issues, strengths, priorities };
 }
 
-export function scoreLabel(score: number): "excellent" | "good" | "average" | "poor" {
-  if (score >= 80) return "excellent";
-  if (score >= 60) return "good";
-  if (score >= 40) return "average";
-  return "poor";
-}
-
 export function scoreColor(score: number): string {
   if (score >= 80) return "text-lime";
   if (score >= 60) return "text-amber-400";

@@ -1,12 +1,14 @@
 import { NextResponse } from "next/server";
 import { getAccessTokenFromRequest, getUserFromAccessToken } from "@/lib/auth-server";
-import { stripe, isStripeConfigured } from "@/lib/stripe";
+import { getStripe, isStripeConfigured } from "@/lib/stripe";
 import { getSupabaseForUser } from "@/lib/supabase-admin";
 
 export async function POST(request: Request) {
   if (!isStripeConfigured()) {
     return NextResponse.json({ error: "Stripe no configurado" }, { status: 503 });
   }
+
+  const stripe = getStripe();
 
   const token = getAccessTokenFromRequest(request);
   const user = await getUserFromAccessToken(token);

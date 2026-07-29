@@ -4,11 +4,11 @@ import { getInstagramRedirectUri } from "@/lib/meta";
 
 const IG_GRAPH = "https://graph.instagram.com/v21.0";
 
-export function getInstagramAppId(): string {
+function getInstagramAppId(): string {
   return process.env.INSTAGRAM_APP_ID ?? "";
 }
 
-export function getInstagramAppSecret(): string {
+function getInstagramAppSecret(): string {
   return process.env.INSTAGRAM_APP_SECRET ?? "";
 }
 
@@ -44,7 +44,7 @@ export function verifyInstagramOAuthState(state: string): string | null {
   }
 }
 
-export function getInstagramLoginScopes(): string {
+function getInstagramLoginScopes(): string {
   return [
     "instagram_business_basic",
     "instagram_business_content_publish",
@@ -67,7 +67,7 @@ export function buildInstagramLoginUrl(state: string): string {
   return `https://www.instagram.com/oauth/authorize?${params}`;
 }
 
-export async function exchangeInstagramCodeForToken(code: string) {
+async function exchangeInstagramCodeForToken(code: string) {
   const body = new FormData();
   body.append("client_id", getInstagramAppId());
   body.append("client_secret", getInstagramAppSecret());
@@ -97,7 +97,7 @@ export async function exchangeInstagramCodeForToken(code: string) {
   };
 }
 
-export async function exchangeInstagramLongLivedToken(shortToken: string) {
+async function exchangeInstagramLongLivedToken(shortToken: string) {
   const url = new URL(`${IG_GRAPH}/access_token`);
   url.searchParams.set("grant_type", "ig_exchange_token");
   url.searchParams.set("client_secret", getInstagramAppSecret());

@@ -1,6 +1,9 @@
-import { readFileSync } from "fs";
-import { join } from "path";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 import pg from "pg";
+
+const projectRoot = fileURLToPath(new URL("../..", import.meta.url));
 
 function getProjectRef() {
   const explicit = process.env.SUPABASE_PROJECT_REF?.trim();
@@ -51,8 +54,8 @@ function buildConnectionStrings() {
   return urls;
 }
 
-export function readSqlFile(file) {
-  return readFileSync(join(process.cwd(), file), "utf8");
+function readSqlFile(file) {
+  return readFileSync(join(projectRoot, file), "utf8");
 }
 
 export async function connectSupabase() {

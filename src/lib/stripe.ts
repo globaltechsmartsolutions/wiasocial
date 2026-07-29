@@ -1,8 +1,21 @@
 import Stripe from "stripe";
 
-export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: "2026-06-24.dahlia",
-});
+let stripeClient: Stripe | null = null;
+
+export function getStripe(): Stripe {
+  const apiKey = process.env.STRIPE_SECRET_KEY?.trim();
+  if (!apiKey) {
+    throw new Error("Stripe no está configurado");
+  }
+
+  if (!stripeClient) {
+    stripeClient = new Stripe(apiKey, {
+      apiVersion: "2026-06-24.dahlia",
+    });
+  }
+
+  return stripeClient;
+}
 
 export const PLANS = {
   starter: {
@@ -35,6 +48,26 @@ export const PLANS = {
 
 export type PlanKey = keyof typeof PLANS;
 
+/**
+ * Maps a Stripe Price ID back to a plan. This is the only trustworthy source:
+ * checkout metadata is written by our own code and proves nothing about what
+ * the customer was actually billed for.
+ */
+export function planFromPriceId(priceId: string | null | undefined): PlanKey | null {
+  if (!priceId?.trim()) return null;
+
+  for (const key of Object.keys(PLANS) as PlanKey[]) {
+    const configured = PLANS[key].priceId?.trim();
+    if (configured && configured === priceId) return key;
+  }
+
+  return null;
+}
+
 export function isStripeConfigured() {
-  return !!(process.env.STRIPE_SECRET_KEY && process.env.STRIPE_PRICE_STARTER);
+  return Boolean(process.env.STRIPE_SECRET_KEY?.trim());
+}
+
+export function isStripePlanConfigured(plan: PlanKey) {
+  return isStripeConfigured() && Boolean(PLANS[plan].priceId?.trim());
 }

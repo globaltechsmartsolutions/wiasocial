@@ -1,13 +1,35 @@
 import { getSupabaseForUser } from "@/lib/supabase-admin";
 
-export const AI_LIMITS: Record<string, number> = {
-  free: 5,
-  starter: Infinity,
-  agency: Infinity,
+export interface PlanUsagePolicy {
+  /** Hard monthly ceiling. Always finite, including on commercially unlimited plans. */
+  limit: number;
+  /** Whether the UI should present the plan as unlimited. */
+  displayUnlimited: boolean;
+}
+
+// Paid plans are sold as unlimited, but an unmetered plan has no margin control
+// and no way to spot an abusive account. The ceiling is a fair-use guard set well
+// above normal usage; `displayUnlimited` keeps the commercial promise in the UI.
+const DEFAULT_POLICIES: Record<string, PlanUsagePolicy> = {
+  free: { limit: 5, displayUnlimited: false },
+  starter: { limit: 500, displayUnlimited: true },
+  agency: { limit: 2000, displayUnlimited: true },
 };
 
-function currentMonthKey() {
-  const now = new Date();
+function envLimitOverride(plan: string): number | null {
+  const raw = process.env[`AI_LIMIT_${plan.toUpperCase()}`]?.trim();
+  if (!raw) return null;
+  // Number() instead of parseInt(): parseInt("12.5") silently yields 12.
+  const parsed = Number(raw);
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : null;
+}
+
+export function getPlanUsagePolicy(plan: string): PlanUsagePolicy {
+  const base = DEFAULT_POLICIES[plan] ?? DEFAULT_POLICIES.free;
+  return { ...base, limit: envLimitOverride(plan) ?? base.limit };
+}
+
+export function currentMonthKey(now = new Date()) {
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
 }
 
@@ -20,6 +42,23 @@ export class UsageLimitError extends Error {
     this.used = used;
     this.limit = limit;
   }
+}
+
+/**
+ * The counter could not be read or written. Thrown instead of letting the
+ * request through: a spending control that fails open is not a control.
+ */
+export class UsageBackendError extends Error {
+  constructor(detail: string) {
+    super(`AI_USAGE_UNAVAILABLE: ${detail}`);
+    this.name = "UsageBackendError";
+  }
+}
+
+export interface UsageState {
+  used: number;
+  limit: number;
+  unlimited: boolean;
 }
 
 async function getUserPlan(userId: string, token: string): Promise<string> {
@@ -35,51 +74,50 @@ async function getUserPlan(userId: string, token: string): Promise<string> {
 export async function checkAndIncrementAIUsage(
   userId: string,
   token: string
-): Promise<{ used: number; limit: number }> {
+): Promise<UsageState> {
   const monthKey = currentMonthKey();
   const plan = await getUserPlan(userId, token);
-  const limit = AI_LIMITS[plan] ?? AI_LIMITS.free;
-
-  if (limit === Infinity) return { used: 0, limit: Infinity };
-
+  const policy = getPlanUsagePolicy(plan);
   const sb = getSupabaseForUser(token);
 
-  // Call the atomic RPC that inserts or increments and returns new count
+  // The RPC checks the limit and increments in the same transaction, so two
+  // concurrent generations cannot both pass the last remaining slot.
   const { data, error } = await sb.rpc("increment_ai_usage", {
     p_user_id: userId,
     p_month_key: monthKey,
+    p_limit: policy.limit,
   });
 
   if (error) {
-    // If RPC doesn't exist yet, fall back to a simple count check
-    const { data: row } = await sb
-      .from("ai_usage")
-      .select("count")
-      .eq("user_id", userId)
-      .eq("month_key", monthKey)
-      .maybeSingle();
-    const current = (row?.count as number | null) ?? 0;
-    if (current >= limit) throw new UsageLimitError(current, limit);
-    await sb.from("ai_usage").upsert(
-      { user_id: userId, month_key: monthKey, count: current + 1, updated_at: new Date().toISOString() },
-      { onConflict: "user_id,month_key" }
+    throw new UsageBackendError(
+      `${error.message}. Ejecuta 'npm run migrate:all' si la función no existe.`
     );
-    return { used: current + 1, limit };
   }
 
-  const newCount = data as number;
-  if (newCount > limit) throw new UsageLimitError(newCount, limit);
+  const row = (Array.isArray(data) ? data[0] : data) as
+    | { used?: number; incremented?: boolean }
+    | null
+    | undefined;
+  const used = Number(row?.used);
 
-  return { used: newCount, limit };
+  if (!Number.isFinite(used) || typeof row?.incremented !== "boolean") {
+    throw new UsageBackendError("respuesta inesperada de increment_ai_usage");
+  }
+
+  if (!row.incremented) {
+    throw new UsageLimitError(used, policy.limit);
+  }
+
+  return { used, limit: policy.limit, unlimited: policy.displayUnlimited };
 }
 
 export async function getMonthlyUsage(
   userId: string,
   token: string
-): Promise<{ used: number; limit: number; monthKey: string }> {
+): Promise<UsageState & { monthKey: string }> {
   const monthKey = currentMonthKey();
   const plan = await getUserPlan(userId, token);
-  const limit = AI_LIMITS[plan] ?? AI_LIMITS.free;
+  const policy = getPlanUsagePolicy(plan);
 
   const sb = getSupabaseForUser(token);
   const { data } = await sb
@@ -89,5 +127,10 @@ export async function getMonthlyUsage(
     .eq("month_key", monthKey)
     .maybeSingle();
 
-  return { used: (data?.count as number | null) ?? 0, limit, monthKey };
+  return {
+    used: (data?.count as number | null) ?? 0,
+    limit: policy.limit,
+    unlimited: policy.displayUnlimited,
+    monthKey,
+  };
 }

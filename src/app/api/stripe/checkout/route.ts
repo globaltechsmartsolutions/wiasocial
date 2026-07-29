@@ -1,13 +1,9 @@
 import { NextResponse } from "next/server";
 import { getAccessTokenFromRequest, getUserFromAccessToken } from "@/lib/auth-server";
-import { stripe, PLANS, isStripeConfigured, type PlanKey } from "@/lib/stripe";
+import { getStripe, PLANS, isStripePlanConfigured, type PlanKey } from "@/lib/stripe";
 import { getSupabaseForUser } from "@/lib/supabase-admin";
 
 export async function POST(request: Request) {
-  if (!isStripeConfigured()) {
-    return NextResponse.json({ error: "Stripe no configurado" }, { status: 503 });
-  }
-
   const token = getAccessTokenFromRequest(request);
   const user = await getUserFromAccessToken(token);
   if (!user || !token) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -16,6 +12,11 @@ export async function POST(request: Request) {
   const planKey = (body.plan as PlanKey) ?? "starter";
   const plan = PLANS[planKey];
   if (!plan) return NextResponse.json({ error: "Plan inválido" }, { status: 400 });
+  if (!isStripePlanConfigured(planKey)) {
+    return NextResponse.json({ error: "Stripe no configurado para este plan" }, { status: 503 });
+  }
+
+  const stripe = getStripe();
 
   const sb = getSupabaseForUser(token);
   const { data: settings } = await sb

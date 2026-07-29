@@ -88,7 +88,7 @@ export function NotificationBell() {
         const { data: { session } } = await getSupabase().auth.getSession();
         if (session?.user) {
           const { data } = await getSupabase()
-            .from("growth_radar_cache")
+            .from("growth_radar_reports")
             .select("created_at")
             .eq("user_id", session.user.id)
             .order("created_at", { ascending: false })

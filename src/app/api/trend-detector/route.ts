@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getAccessTokenFromRequest, getUserFromAccessToken } from "@/lib/auth-server";
-import { checkAndIncrementAIUsage, UsageLimitError } from "@/lib/ai-usage";
+import { enforceAIUsage } from "@/lib/ai-usage-guard";
 import { buildUserAIContext } from "@/lib/ai-context";
 import { openai, isOpenAIConfigured } from "@/lib/openai";
 import { getSupabaseForUser } from "@/lib/supabase-admin";
@@ -62,16 +62,17 @@ export async function POST(request: Request) {
   const ctx = await buildUserAIContext(user.id, token);
   const langInstruction = locale === "es" ? "Respond entirely in Spanish." : "Respond entirely in English.";
 
-  try { await checkAndIncrementAIUsage(user.id, token); } catch (e) {
-    if (e instanceof UsageLimitError) return NextResponse.json({ error: "USAGE_LIMIT_EXCEEDED", used: e.used, limit: e.limit }, { status: 429 });
-    throw e;
-  }
+  const usageBlocked = await enforceAIUsage(user.id, token);
+  if (usageBlocked) return usageBlocked;
 
   const completion = await openai!.chat.completions.create({
     model: "gpt-4o-mini",
     messages: [
       { role: "system", content: `${TREND_SYSTEM_PROMPT}\n\n${langInstruction}` },
-      { role: "user", content: `User context:\n${ctx}\n\nAnalyze trending content opportunities for this user's niche this week.` },
+      {
+        role: "user",
+        content: `User context:\n${JSON.stringify(ctx, null, 2)}\n\nAnalyze trending content opportunities for this user's niche this week.`,
+      },
     ],
     response_format: { type: "json_object" },
     temperature: 0.8,

@@ -183,7 +183,7 @@ export function normalizeContentRoute(value: unknown, fallbackInput: ContentTemp
   };
 }
 
-export function getCarouselTemplateDefinition(templateId: CarouselTemplateId | string | undefined): CarouselTemplateDefinition {
+function getCarouselTemplateDefinition(templateId: CarouselTemplateId | string | undefined): CarouselTemplateDefinition {
   return CAROUSEL_TEMPLATE_DEFINITIONS.find((template) => template.id === templateId)
     ?? CAROUSEL_TEMPLATE_DEFINITIONS.find((template) => template.id === DEFAULT_TEMPLATE_ID)!;
 }
@@ -221,6 +221,11 @@ ${templateList}`;
 }
 
 function chooseTemplateId(signals: TemplateSignals, input: ContentTemplateRouterInput): CarouselTemplateId {
+  if (input.proof) return "case_study";
+  if (input.objection) return "objection_handler";
+  if (input.goal === "sales" || input.funnelStage === "conversion" || input.commercialIntensity === "direct") {
+    return "direct_offer";
+  }
   if (signals.caseStudy) return "case_study";
   if (signals.objection) return "objection_handler";
   if (signals.myth) return "myth_busting";
@@ -228,7 +233,7 @@ function chooseTemplateId(signals: TemplateSignals, input: ContentTemplateRouter
   if (signals.checklist) return "checklist";
   if (signals.comparison) return "comparison";
   if (signals.beforeAfter) return "before_after";
-  if (signals.directOffer || input.goal === "sales" || input.funnelStage === "conversion" || input.commercialIntensity === "direct") {
+  if (signals.directOffer) {
     return "direct_offer";
   }
   if (signals.educational) return "educational";

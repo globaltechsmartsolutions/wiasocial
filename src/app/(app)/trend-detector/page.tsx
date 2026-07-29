@@ -12,7 +12,7 @@ import {
   Zap,
 } from "lucide-react";
 import { PageHeader, EmptyState } from "@/components/ui/PageHeader";
-import { Card, CardHeader } from "@/components/ui/Card";
+import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { useTranslation } from "@/lib/i18n/LanguageProvider";

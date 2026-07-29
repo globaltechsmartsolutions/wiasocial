@@ -54,7 +54,6 @@ export function OnboardingWizard() {
 
   const current = STEPS[step];
   const Icon = current.icon;
-  const isLast = step === STEPS.length - 1;
 
   const handleCta = () => {
     if (current.href) {
@@ -127,9 +126,4 @@ export function OnboardingWizard() {
       </div>
     </div>
   );
-}
-
-export function useOnboarding() {
-  if (typeof window === "undefined") return false;
-  return !localStorage.getItem(STORAGE_KEY);
 }

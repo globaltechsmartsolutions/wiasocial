@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { enforceUserRateLimit, getAccessTokenFromRequest, getUserFromAccessToken } from "@/lib/auth-server";
-import { checkAndIncrementAIUsage, UsageLimitError } from "@/lib/ai-usage";
+import { enforceAIUsage } from "@/lib/ai-usage-guard";
 import { buildUserAIContext, type UserAIContext } from "@/lib/ai-context";
 import { buildTemplateRouterPromptContext, routeContentTemplate } from "@/lib/content-template-router";
 import { openai, isOpenAIConfigured } from "@/lib/openai";
@@ -252,10 +252,8 @@ export async function POST(request: Request) {
     const limited = await enforceUserRateLimit(request, user.id, "api-ai", 30, 60 * 60 * 1000);
     if (limited) return limited;
 
-    try { await checkAndIncrementAIUsage(user.id, token); } catch (e) {
-      if (e instanceof UsageLimitError) return NextResponse.json({ error: "USAGE_LIMIT_EXCEEDED", used: e.used, limit: e.limit }, { status: 429 });
-      throw e;
-    }
+    const usageBlocked = await enforceAIUsage(user.id, token);
+    if (usageBlocked) return usageBlocked;
 
     const body = await request.json();
     const { action, locale = "es", ...params } = body as { action: AIAction; locale?: string; [key: string]: unknown };

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { X, Zap, TrendingUp, Users, FileText, Loader2, CheckCircle2 } from "lucide-react";
+import { X, Zap, Loader2, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { useTranslation } from "@/lib/i18n/LanguageProvider";
 import { getSupabase } from "@/lib/supabase";
