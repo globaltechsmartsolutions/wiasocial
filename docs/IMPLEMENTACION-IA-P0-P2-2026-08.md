@@ -136,7 +136,9 @@ npm run migrate:ai-core
 
 - **Ejecutar la migración `ai-core` en staging y producción.** Hasta entonces,
   los runs no se persisten (hay warning en logs) y la liberación de cuota
-  degrada al comportamiento actual.
+  degrada al comportamiento actual. Tras aplicarla en staging, verificar el
+  aislamiento con `npm run test:rls:ai-core` (requiere `SUPABASE_TEST_DB_URL`
+  apuntando a staging; el test nunca usa `SUPABASE_DB_URL` y revierte todo).
 - **Rellenar la baseline** de `docs/COMPARATIVA-MODELOS-CONTENT-STUDIO.md` con
   una ejecución real del bake-off (requiere claves propias, fuera de CI).
 - **La liberación de cuota no es transaccional con el run**: si el proceso

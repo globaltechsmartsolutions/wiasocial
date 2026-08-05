@@ -18,6 +18,7 @@
     "deadcode": "knip",
     "audit": "npm audit --audit-level=high",
     "test:rls": "vitest run tests/rls-user-settings.integration.test.mjs",
+    "test:rls:ai-core": "vitest run tests/rls-ai-core.integration.test.mjs",
     "check": "npm run lint && npm run typecheck && npm run test && npm run deadcode && npm run build && npm run audit",
     "migrate:all": "node --env-file=.env.local scripts/migrate-all.mjs",
     "migrate:instagram": "node --env-file=.env.local scripts/migrate-instagram.mjs",
