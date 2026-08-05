@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { respondToAIError } from "@/lib/ai/error-response";
 import { enforceUserRateLimit, getAccessTokenFromRequest, getUserFromAccessToken } from "@/lib/auth-server";
 import { enforceAIUsage } from "@/lib/ai-usage-guard";
 import { buildUserAIContext } from "@/lib/ai-context";
@@ -24,6 +25,14 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
+  try {
+    return await handlePost(request);
+  } catch (err) {
+    return respondToAIError(err, "daily-brief");
+  }
+}
+
+async function handlePost(request: Request) {
   const token = getAccessTokenFromRequest(request);
   const user = await getUserFromAccessToken(token);
   if (!user || !token) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
