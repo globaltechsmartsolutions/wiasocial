@@ -113,6 +113,58 @@ export async function checkAndIncrementAIUsage(
   return { used, limit: policy.limit, unlimited: policy.displayUnlimited };
 }
 
+export interface UsageReservation extends UsageState {
+  reservationId: string;
+  monthKey: string;
+}
+
+/**
+ * Reserva identificada para el flujo migrado: incrementa el contador y crea
+ * una fila `reserved` en la misma transacción (RPC `reserve_ai_usage`). La
+ * reserva solo puede confirmarse o liberarse UNA vez, mediante la transición
+ * atómica de estado de esa fila concreta.
+ */
+export async function reserveAIUsage(userId: string, token: string): Promise<UsageReservation> {
+  const monthKey = currentMonthKey();
+  const plan = await getUserPlan(userId, token);
+  const policy = getPlanUsagePolicy(plan);
+  const sb = getSupabaseForUser(token);
+
+  const { data, error } = await sb.rpc("reserve_ai_usage", {
+    p_user_id: userId,
+    p_month_key: monthKey,
+    p_limit: policy.limit,
+  });
+
+  if (error) {
+    throw new UsageBackendError(
+      `${error.message}. Ejecuta 'npm run migrate:ai-core' si la función no existe.`
+    );
+  }
+
+  const row = (Array.isArray(data) ? data[0] : data) as
+    | { reservation_id?: string | null; used?: number; reserved?: boolean }
+    | null
+    | undefined;
+  const used = Number(row?.used);
+
+  if (!Number.isFinite(used) || typeof row?.reserved !== "boolean") {
+    throw new UsageBackendError("respuesta inesperada de reserve_ai_usage");
+  }
+
+  if (!row.reserved || !row.reservation_id) {
+    throw new UsageLimitError(used, policy.limit);
+  }
+
+  return {
+    reservationId: row.reservation_id,
+    monthKey,
+    used,
+    limit: policy.limit,
+    unlimited: policy.displayUnlimited,
+  };
+}
+
 export async function getMonthlyUsage(
   userId: string,
   token: string

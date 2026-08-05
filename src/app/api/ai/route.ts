@@ -14,7 +14,7 @@ import { getTaskSpec, type AITaskId } from "@/lib/ai/task-registry";
 import { buildUserMessage, UNTRUSTED_DATA_POLICY } from "@/lib/ai/untrusted";
 import { ContentStudioValidationError, runContentStudio } from "@/lib/ai/content-studio";
 import { createQuotaManager } from "@/lib/ai/quota";
-import { createRunPersistence } from "@/lib/ai/persistence";
+import { AIPersistenceError, createRunPersistence } from "@/lib/ai/persistence";
 
 type AIAction =
   | "content"
@@ -381,6 +381,10 @@ function errorResponse(err: unknown): NextResponse {
     console.error("[ai-usage] contador no disponible:", err.message);
     return NextResponse.json({ error: "AI_USAGE_UNAVAILABLE" }, { status: 503 });
   }
+  if (err instanceof AIPersistenceError) {
+    console.error("[ai-runs]", err.message);
+    return NextResponse.json({ error: "AI_PERSISTENCE_UNAVAILABLE" }, { status: 503 });
+  }
   if (err instanceof AIGatewayError) {
     if (err.code === "not_configured") {
       return NextResponse.json(
@@ -426,7 +430,7 @@ export async function POST(request: Request) {
       const context = await buildUserAIContext(user.id, token);
       const { output, runId } = await runContentStudio(user.id, { ...params, locale }, context, {
         gateway: getModelGateway(),
-        persistence: createRunPersistence(token),
+        persistence: createRunPersistence(),
         quota: createQuotaManager(user.id, token),
       });
       return NextResponse.json({ ...output, runId });

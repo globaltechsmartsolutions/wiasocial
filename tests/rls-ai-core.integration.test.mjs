@@ -1,5 +1,6 @@
-// Aislamiento RLS de las tablas del núcleo IA (generation_runs,
-// generation_steps, usage_events) y de las funciones de cuota.
+// Aislamiento y fiabilidad del núcleo IA: ledger de solo lectura para el
+// cliente (generation_runs, generation_steps, usage_events), integridad de
+// propietario y reservas de cuota de un solo uso.
 //
 // Requiere SUPABASE_TEST_DB_URL explícita (staging). Nunca usa SUPABASE_DB_URL
 // ni DATABASE_URL, así que no puede apuntar a producción por accidente. Todo
@@ -31,12 +32,12 @@ loadEnvLocal();
 
 const connectionString = process.env.SUPABASE_TEST_DB_URL?.trim();
 const INSUFFICIENT_PRIVILEGE = "42501";
+const FOREIGN_KEY_VIOLATION = "23503";
 
 const USER_A = "00000000-0000-4000-8000-00000000c001";
 const USER_B = "00000000-0000-4000-8000-00000000c002";
-const MONTH_KEY = "2099-01";
 
-describe.skipIf(!connectionString)("RLS del núcleo IA (generation_runs, steps, usage_events, cuota)", () => {
+describe.skipIf(!connectionString)("RLS y fiabilidad del núcleo IA (ledger + reservas de cuota)", () => {
   /** @type {pg.Client} */
   let client;
   /** @type {string} */
@@ -60,14 +61,32 @@ describe.skipIf(!connectionString)("RLS del núcleo IA (generation_runs, steps, 
     }
   }
 
+  async function usageCount(userId, monthKey) {
+    const result = await client.query(
+      "SELECT count FROM ai_usage WHERE user_id = $1 AND month_key = $2",
+      [userId, monthKey]
+    );
+    return result.rows[0]?.count ?? 0;
+  }
+
+  async function reserveAs(userId, monthKey, limit = 5) {
+    const result = await runAsUser(userId, "SELECT * FROM reserve_ai_usage($1, $2, $3)", [
+      userId,
+      monthKey,
+      limit,
+    ]);
+    expect(result.ok).toBe(true);
+    return result.rows[0];
+  }
+
   beforeAll(async () => {
     client = new pg.Client({ connectionString, ssl: { rejectUnauthorized: false } });
     await client.connect();
 
     const { rows } = await client.query(
-      "SELECT to_regclass('public.generation_runs') AS runs, to_regclass('public.usage_events') AS events"
+      "SELECT to_regclass('public.generation_runs') AS runs, to_regclass('public.ai_usage_reservations') AS reservations"
     );
-    if (!rows[0]?.runs || !rows[0]?.events) {
+    if (!rows[0]?.runs || !rows[0]?.reservations) {
       throw new Error(
         "Faltan las tablas del núcleo IA en esta base. Ejecuta 'npm run migrate:ai-core' contra la base de STAGING antes de este test."
       );
@@ -111,6 +130,8 @@ describe.skipIf(!connectionString)("RLS del núcleo IA (generation_runs, steps, 
     await client.end().catch(() => undefined);
   });
 
+  // ── Aislamiento de lectura ─────────────────────────────────────────────────
+
   it("un usuario nunca lee las ejecuciones de otro", async () => {
     for (const table of ["generation_runs", "generation_steps", "usage_events"]) {
       const result = await runAsUser(USER_A, `SELECT id FROM ${table} WHERE user_id = $1`, [USER_B]);
@@ -125,91 +146,197 @@ describe.skipIf(!connectionString)("RLS del núcleo IA (generation_runs, steps, 
     expect(result.rowCount).toBe(0);
   });
 
-  it("permite registrar y leer las ejecuciones propias", async () => {
-    const insert = await runAsUser(
-      USER_A,
-      `INSERT INTO generation_runs (user_id, task_id, status) VALUES ($1, 'content', 'running') RETURNING id`,
-      [USER_A]
-    );
-    expect(insert.ok).toBe(true);
-
-    const read = await runAsUser(USER_A, "SELECT id FROM generation_runs WHERE user_id = $1", [USER_A]);
-    expect(read.ok).toBe(true);
-    expect(read.rowCount).toBe(1);
+  it("el titular puede leer sus propias filas del ledger", async () => {
+    const result = await runAsUser(USER_B, "SELECT id, status FROM generation_runs WHERE user_id = $1", [USER_B]);
+    expect(result.ok).toBe(true);
+    expect(result.rowCount).toBe(1);
   });
 
-  it("impide insertar un run a nombre de otro usuario", async () => {
+  // ── El ledger no es falsificable por el cliente ────────────────────────────
+
+  it("el cliente no puede insertar runs, ni propios ni ajenos", async () => {
+    for (const target of [USER_A, USER_B]) {
+      const result = await runAsUser(
+        USER_A,
+        `INSERT INTO generation_runs (user_id, task_id, status) VALUES ($1, 'content', 'running')`,
+        [target]
+      );
+      expect(result.ok).toBe(false);
+      expect(result.code).toBe(INSUFFICIENT_PRIVILEGE);
+    }
+  });
+
+  it("el cliente no puede modificar estado, resultado, tokens ni coste de un run", async () => {
     const result = await runAsUser(
-      USER_A,
-      `INSERT INTO generation_runs (user_id, task_id, status) VALUES ($1, 'content', 'running')`,
-      [USER_B]
+      USER_B,
+      `UPDATE generation_runs SET status = 'completed', result = '{"fake":true}'::jsonb, output_tokens = 0, estimated_cost_usd = 0 WHERE id = $1`,
+      [runOfB]
     );
     expect(result.ok).toBe(false);
     expect(result.code).toBe(INSUFFICIENT_PRIVILEGE);
   });
 
-  it("impide modificar o reasignar el run de otro usuario", async () => {
-    const update = await runAsUser(USER_A, "UPDATE generation_runs SET status = 'failed' WHERE id = $1", [runOfB]);
-    expect(update.ok).toBe(true);
-    expect(update.rowCount).toBe(0);
+  it("el cliente no puede insertar, modificar ni borrar steps ni usage_events", async () => {
+    const attempts = [
+      [`INSERT INTO generation_steps (run_id, user_id, step_id, status) VALUES ($1, $2, 'generate', 'running')`, [runOfB, USER_B]],
+      [`UPDATE generation_steps SET status = 'succeeded' WHERE user_id = $1`, [USER_B]],
+      [`INSERT INTO usage_events (user_id, task_id, event_type, units) VALUES ($1, 'content', 'reserve', 1)`, [USER_B]],
+      [`UPDATE usage_events SET units = 0 WHERE user_id = $1`, [USER_B]],
+      [`DELETE FROM usage_events WHERE user_id = $1`, [USER_B]],
+    ];
+    for (const [sql, params] of attempts) {
+      const result = await runAsUser(USER_B, sql, params);
+      expect(result.ok, sql).toBe(false);
+      expect(result.code, sql).toBe(INSUFFICIENT_PRIVILEGE);
+    }
+  });
 
-    const insertOwn = await runAsUser(
+  // ── Integridad de propietario en escrituras de servidor ────────────────────
+
+  it("ni siquiera el servidor puede colgar un step de un run con user_id distinto", async () => {
+    await client.query("SAVEPOINT server_step");
+    let error = null;
+    try {
+      await client.query(
+        `INSERT INTO generation_steps (run_id, user_id, step_id, status) VALUES ($1, $2, 'generate', 'running')`,
+        [runOfB, USER_A]
+      );
+    } catch (err) {
+      error = err;
+    }
+    await client.query("ROLLBACK TO SAVEPOINT server_step");
+    expect(error?.code).toBe(FOREIGN_KEY_VIOLATION);
+  });
+
+  it("un usage_event con run ajeno es rechazado por el trigger de propietario", async () => {
+    await client.query("SAVEPOINT server_event");
+    let error = null;
+    try {
+      await client.query(
+        `INSERT INTO usage_events (user_id, run_id, task_id, event_type, units) VALUES ($1, $2, 'content', 'settle', 1)`,
+        [USER_A, runOfB]
+      );
+    } catch (err) {
+      error = err;
+    }
+    await client.query("ROLLBACK TO SAVEPOINT server_event");
+    expect(error?.message).toMatch(/does not match the owner/);
+  });
+
+  // ── Reservas de cuota de un solo uso ───────────────────────────────────────
+
+  it("ai_usage y ai_usage_reservations no admiten escritura directa del cliente", async () => {
+    const usageWrite = await runAsUser(
       USER_A,
-      `INSERT INTO generation_runs (user_id, task_id, status) VALUES ($1, 'content', 'running') RETURNING id`,
+      "INSERT INTO ai_usage (user_id, month_key, count) VALUES ($1, '2099-01', 0)",
       [USER_A]
     );
-    const reassign = await runAsUser(USER_A, "UPDATE generation_runs SET user_id = $2 WHERE id = $1", [
-      insertOwn.rows[0].id,
-      USER_B,
+    expect(usageWrite.ok).toBe(false);
+    expect(usageWrite.code).toBe(INSUFFICIENT_PRIVILEGE);
+
+    const reservationWrite = await runAsUser(
+      USER_A,
+      "INSERT INTO ai_usage_reservations (user_id, month_key, status) VALUES ($1, '2099-01', 'released')",
+      [USER_A]
+    );
+    expect(reservationWrite.ok).toBe(false);
+    expect(reservationWrite.code).toBe(INSUFFICIENT_PRIVILEGE);
+  });
+
+  it("una reserva solo puede liberarse UNA vez", async () => {
+    const monthKey = "2099-02";
+    const reservation = await reserveAs(USER_A, monthKey);
+    expect(reservation.reserved).toBe(true);
+    expect(await usageCount(USER_A, monthKey)).toBe(1);
+
+    const first = await runAsUser(USER_A, "SELECT * FROM release_ai_usage_reservation($1, $2)", [
+      USER_A,
+      reservation.reservation_id,
     ]);
-    expect(reassign.ok).toBe(false);
+    expect(first.ok).toBe(true);
+    expect(first.rows[0].released).toBe(true);
+    expect(await usageCount(USER_A, monthKey)).toBe(0);
+
+    // Repetir la liberación no vuelve a decrementar: el contador no puede
+    // vaciarse llamando al RPC en bucle.
+    for (let i = 0; i < 3; i += 1) {
+      const again = await runAsUser(USER_A, "SELECT * FROM release_ai_usage_reservation($1, $2)", [
+        USER_A,
+        reservation.reservation_id,
+      ]);
+      expect(again.ok).toBe(true);
+      expect(again.rows[0].released).toBe(false);
+    }
+    expect(await usageCount(USER_A, monthKey)).toBe(0);
   });
 
-  it("usage_events es contable: el titular no puede modificar ni borrar", async () => {
-    const insert = await runAsUser(
+  it("una reserva confirmada (settled) ya no puede liberarse", async () => {
+    const monthKey = "2099-03";
+    const reservation = await reserveAs(USER_A, monthKey);
+    expect(await usageCount(USER_A, monthKey)).toBe(1);
+
+    const settle = await runAsUser(USER_A, "SELECT settle_ai_usage_reservation($1, $2) AS settled", [
       USER_A,
-      `INSERT INTO usage_events (user_id, task_id, event_type, units) VALUES ($1, 'content', 'reserve', 1) RETURNING id`,
-      [USER_A]
-    );
-    expect(insert.ok).toBe(true);
-    const eventId = insert.rows[0].id;
+      reservation.reservation_id,
+    ]);
+    expect(settle.ok).toBe(true);
+    expect(settle.rows[0].settled).toBe(true);
 
-    const update = await runAsUser(USER_A, "UPDATE usage_events SET units = 0 WHERE id = $1", [eventId]);
-    expect(update.ok).toBe(false);
-    expect(update.code).toBe(INSUFFICIENT_PRIVILEGE);
-
-    const del = await runAsUser(USER_A, "DELETE FROM usage_events WHERE id = $1", [eventId]);
-    expect(del.ok).toBe(false);
-    expect(del.code).toBe(INSUFFICIENT_PRIVILEGE);
-  });
-
-  it("la cuota se reserva y se libera solo mediante las funciones", async () => {
-    // ai_usage sigue siendo de solo lectura para el titular.
-    const directWrite = await runAsUser(
+    const release = await runAsUser(USER_A, "SELECT * FROM release_ai_usage_reservation($1, $2)", [
       USER_A,
-      "INSERT INTO ai_usage (user_id, month_key, count) VALUES ($1, $2, 0)",
-      [USER_A, MONTH_KEY]
-    );
-    expect(directWrite.ok).toBe(false);
-    expect(directWrite.code).toBe(INSUFFICIENT_PRIVILEGE);
-
-    const reserve = await runAsUser(USER_A, "SELECT * FROM increment_ai_usage($1, $2, 5)", [USER_A, MONTH_KEY]);
-    expect(reserve.ok).toBe(true);
-    expect(reserve.rows[0]).toMatchObject({ used: 1, incremented: true });
-
-    const release = await runAsUser(USER_A, "SELECT * FROM release_ai_usage($1, $2)", [USER_A, MONTH_KEY]);
+      reservation.reservation_id,
+    ]);
     expect(release.ok).toBe(true);
-    expect(release.rows[0].used).toBe(0);
-
-    // Liberar de nuevo no deja el contador en negativo.
-    const releaseAgain = await runAsUser(USER_A, "SELECT * FROM release_ai_usage($1, $2)", [USER_A, MONTH_KEY]);
-    expect(releaseAgain.ok).toBe(true);
-    expect(releaseAgain.rows[0].used).toBe(0);
+    expect(release.rows[0].released).toBe(false);
+    // El consumo confirmado permanece.
+    expect(await usageCount(USER_A, monthKey)).toBe(1);
   });
 
-  it("nadie puede liberar la cuota de otro usuario", async () => {
-    const result = await runAsUser(USER_A, "SELECT * FROM release_ai_usage($1, $2)", [USER_B, MONTH_KEY]);
-    expect(result.ok).toBe(false);
-    expect(result.message).toMatch(/Not authorized/);
+  it("reservar y liberar en bucle nunca genera cuota gratis", async () => {
+    const monthKey = "2099-04";
+    for (let i = 0; i < 3; i += 1) {
+      const reservation = await reserveAs(USER_A, monthKey);
+      const release = await runAsUser(USER_A, "SELECT * FROM release_ai_usage_reservation($1, $2)", [
+        USER_A,
+        reservation.reservation_id,
+      ]);
+      expect(release.rows[0].released).toBe(true);
+    }
+    // Neto cero: cada liberación exige una reserva previa que incrementó.
+    expect(await usageCount(USER_A, monthKey)).toBe(0);
+  });
+
+  it("el límite se sigue aplicando en la reserva", async () => {
+    const monthKey = "2099-05";
+    await reserveAs(USER_A, monthKey, 1);
+    const second = await runAsUser(USER_A, "SELECT * FROM reserve_ai_usage($1, $2, 1)", [
+      USER_A,
+      monthKey,
+    ]);
+    expect(second.ok).toBe(true);
+    expect(second.rows[0].reserved).toBe(false);
+    expect(second.rows[0].reservation_id).toBeNull();
+  });
+
+  it("nadie puede tocar las reservas de otro usuario", async () => {
+    const monthKey = "2099-06";
+    const reservation = await reserveAs(USER_A, monthKey);
+
+    // Suplantar el p_user_id ajeno falla la autorización.
+    const impersonate = await runAsUser(USER_B, "SELECT * FROM release_ai_usage_reservation($1, $2)", [
+      USER_A,
+      reservation.reservation_id,
+    ]);
+    expect(impersonate.ok).toBe(false);
+    expect(impersonate.message).toMatch(/Not authorized/);
+
+    // Con su propio id, la reserva ajena simplemente no existe para él.
+    const foreign = await runAsUser(USER_B, "SELECT * FROM release_ai_usage_reservation($1, $2)", [
+      USER_B,
+      reservation.reservation_id,
+    ]);
+    expect(foreign.ok).toBe(true);
+    expect(foreign.rows[0].released).toBe(false);
+    expect(await usageCount(USER_A, monthKey)).toBe(1);
   });
 });

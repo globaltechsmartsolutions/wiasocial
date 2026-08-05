@@ -1,54 +1,69 @@
 import "server-only";
 
-import { checkAndIncrementAIUsage, currentMonthKey, type UsageState } from "@/lib/ai-usage";
+import { reserveAIUsage, type UsageReservation } from "@/lib/ai-usage";
 import { getSupabaseForUser } from "@/lib/supabase-admin";
 
 /**
- * Gestión de cuota para el flujo migrado (§11 de la arquitectura):
+ * Gestión de cuota del flujo migrado (§11 de la arquitectura), con reservas
+ * identificadas:
  *
- * 1. `reserve` consume un slot ANTES de llamar al proveedor, de forma atómica
- *    (RPC `increment_ai_usage` con FOR UPDATE: dos generaciones concurrentes
- *    no pueden pasar ambas por el último slot).
- * 2. Si la generación termina bien, la reserva se confirma sin más escrituras.
- * 3. Si el proveedor falla, `release` devuelve el slot (RPC `release_ai_usage`)
- *    para que un fallo ajeno al usuario no consuma su cuota.
+ * 1. `reserve` incrementa el contador y crea una fila `reserved` en la misma
+ *    transacción (RPC `reserve_ai_usage`, serializada con FOR UPDATE).
+ * 2. `settle` confirma la reserva al terminar bien: queda `settled` y ya no
+ *    puede liberarse nunca.
+ * 3. `release` devuelve el slot SOLO si esa reserva concreta sigue `reserved`.
+ *    La transición de estado es atómica en SQL, así que llamadas repetidas o
+ *    concurrentes no pueden decrementar el contador más de una vez.
  *
- * `release` es best-effort: si la función SQL aún no está migrada, se registra
- * y el comportamiento queda igual que el legacy (slot consumido).
+ * `settle` y `release` son best-effort frente a fallos de red: si no llegan a
+ * ejecutarse, la reserva queda `reserved` y el slot consumido (mismo
+ * comportamiento que el contador actual, nunca más permisivo).
  */
 
-interface QuotaReservation {
-  state: UsageState;
-  monthKey: string;
-}
+type QuotaReservation = UsageReservation;
 
 export interface QuotaManager {
   reserve(): Promise<QuotaReservation>;
+  settle(reservation: QuotaReservation): Promise<boolean>;
   release(reservation: QuotaReservation): Promise<boolean>;
 }
 
 export function createQuotaManager(userId: string, token: string): QuotaManager {
   return {
     async reserve() {
-      const state = await checkAndIncrementAIUsage(userId, token);
-      return { state, monthKey: currentMonthKey() };
+      return reserveAIUsage(userId, token);
+    },
+
+    async settle(reservation) {
+      try {
+        const sb = getSupabaseForUser(token);
+        const { data, error } = await sb.rpc("settle_ai_usage_reservation", {
+          p_user_id: userId,
+          p_reservation_id: reservation.reservationId,
+        });
+        if (error) throw new Error(error.message);
+        return data === true;
+      } catch (err) {
+        console.warn(
+          `[ai-quota] no se pudo confirmar la reserva ${reservation.reservationId}: ${err instanceof Error ? err.message : err}`
+        );
+        return false;
+      }
     },
 
     async release(reservation) {
       try {
         const sb = getSupabaseForUser(token);
-        const { error } = await sb.rpc("release_ai_usage", {
+        const { data, error } = await sb.rpc("release_ai_usage_reservation", {
           p_user_id: userId,
-          p_month_key: reservation.monthKey,
+          p_reservation_id: reservation.reservationId,
         });
-        if (error) {
-          console.warn(`[ai-quota] no se pudo liberar la reserva: ${error.message}`);
-          return false;
-        }
-        return true;
+        if (error) throw new Error(error.message);
+        const row = (Array.isArray(data) ? data[0] : data) as { released?: boolean } | null;
+        return row?.released === true;
       } catch (err) {
         console.warn(
-          `[ai-quota] no se pudo liberar la reserva: ${err instanceof Error ? err.message : err}`
+          `[ai-quota] no se pudo liberar la reserva ${reservation.reservationId}: ${err instanceof Error ? err.message : err}`
         );
         return false;
       }

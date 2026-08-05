@@ -1,6 +1,6 @@
 import "server-only";
 
-import { getModelGateway, type GatewayMessage, type ModelGateway } from "@/lib/ai/gateway";
+import { getModelGateway, type ModelGateway } from "@/lib/ai/gateway";
 import { getTaskSpec, type AITaskId } from "@/lib/ai/task-registry";
 import { buildUserMessage, UNTRUSTED_DATA_POLICY } from "@/lib/ai/untrusted";
 
@@ -27,12 +27,15 @@ interface LegacyTaskOptions {
   system: string;
   /** Instrucción de la tarea, texto fijo del repositorio sin interpolar datos. */
   instruction: string;
-  /** Datos aportados por el usuario en la petición. No confiables. */
+  /**
+   * Datos aportados por el usuario en la petición. No confiables. Incluye
+   * también el historial de conversación en tareas de chat: los mensajes
+   * almacenados son contenido de usuario y NUNCA se reenvían como turnos
+   * user/assistant crudos fuera de los delimitadores.
+   */
   input?: unknown;
   /** Contexto de la app (Supabase, Instagram, etc.). No confiable. */
   context?: unknown;
-  /** Historial de conversación (solo tareas de chat). */
-  history?: GatewayMessage[];
   locale?: string;
   mode?: "json" | "text";
   modelOverride?: string;
@@ -82,7 +85,7 @@ export async function runLegacyTask(options: LegacyTaskOptions): Promise<{ json:
     taskId: spec.id,
     modelAlias: spec.modelAlias,
     system,
-    messages: [...(options.history ?? []), { role: "user", content: userMessage }],
+    messages: [{ role: "user", content: userMessage }],
     temperature: spec.temperature,
     maxOutputTokens: spec.maxOutputTokens,
     timeoutMs: spec.timeoutMs,

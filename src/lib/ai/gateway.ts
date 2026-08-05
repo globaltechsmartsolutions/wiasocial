@@ -46,7 +46,7 @@ type GatewayResponseFormat =
   | { type: "json_object" }
   | { type: "json_schema"; name: string; schema: Record<string, unknown> };
 
-export interface GatewayMessage {
+interface GatewayMessage {
   role: "user" | "assistant";
   content: string;
 }

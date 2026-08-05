@@ -1,11 +1,16 @@
 # Implementación IA — Fases P0, P1 y P2
 
-**Fecha:** 5 de agosto de 2026
+**Fecha:** 5 de agosto de 2026 (revisión 2, tras auditoría independiente)
 **Rama:** `codex/specialized-content-engine`
 **Referencia:** `docs/ARQUITECTURA-IA-Y-ORQUESTACION-WIASOCIAL-2026.md`
 
 Primera entrega de la arquitectura IA: integración tipada, medible y segura sin
 cambiar la experiencia visible del producto ni migrar todas las rutas de golpe.
+
+**Revisión 2** corrige los cuatro hallazgos de la auditoría: cuota con reservas
+identificadas de un solo uso, persistencia estricta en el flujo v2, historial
+del AI Coach delimitado como no confiable, y ledger de ejecuciones escrito solo
+por el servidor.
 
 ## 1. Qué Se Ha Implementado
 
@@ -22,7 +27,10 @@ cambiar la experiencia visible del producto ni migrar todas las rutas de golpe.
   bloques `<<<UNTRUSTED_DATA:...>>>`, con neutralización de delimitadores
   incrustados y una política en el system prompt que prohíbe seguir
   instrucciones encontradas en los datos. Las instrucciones de cada tarea son
-  texto fijo del repositorio, sin interpolación de datos de usuario.
+  texto fijo del repositorio, sin interpolación de datos de usuario. Esto
+  incluye el historial del AI Coach: los mensajes guardados van dentro del
+  bloque no confiable (`user_input.conversationHistory`), nunca como turnos
+  `user`/`assistant` crudos.
 - **Honestidad de datos**: el Trend Detector ya no afirma conocer tendencias
   actuales (prompt y textos de UI reescritos como "oportunidades estimadas sin
   datos en tiempo real"); los volúmenes de hashtags se marcan como estimaciones
@@ -62,15 +70,25 @@ cambiar la experiencia visible del producto ni migrar todas las rutas de golpe.
 - **Persistencia de ejecuciones** (`src/lib/ai/persistence.ts` + migración):
   `generation_runs`, `generation_steps` y `usage_events` con ID, usuario,
   tarea, estado, modelo/proveedor, versión de prompt, tokens, latencia, coste
-  estimado, error normalizado y fechas.
-- **Cuotas** (`src/lib/ai/quota.ts` + `release_ai_usage` en SQL): reserva
-  atómica antes de ejecutar (RPC existente con `FOR UPDATE`), confirmación
-  implícita al completar, y liberación si el proveedor falla, con eventos
-  `reserve/settle/release/failure` en `usage_events`.
-- **Content Studio migrado** (`src/lib/ai/content-studio.ts`): el run se crea
-  en servidor antes de llamar al proveedor y el resultado se persiste en
-  servidor antes de responder — cerrar el navegador no pierde una generación
-  pagada. La ruta antigua sigue disponible tras feature flag. Las otras diez
+  estimado, error normalizado y fechas. El ledger se escribe SOLO con
+  `service_role`: el titular puede leer sus filas pero no crearlas ni
+  modificarlas, así que estado, resultado, tokens y coste no son falsificables
+  desde el navegador. Una FK compuesta (steps) y un trigger (events) impiden
+  filas colgadas de un run de otro usuario.
+- **Cuotas** (`src/lib/ai/quota.ts` + `ai_usage_reservations` en SQL): la
+  reserva es una fila identificada creada junto al incremento del contador en
+  la misma transacción (`reserve_ai_usage`, serializada con `FOR UPDATE`), con
+  máquina de estados `reserved -> settled | released`. Confirmar o liberar
+  exige la transición atómica de ESA fila: una reserva confirmada o liberada
+  no puede volver a liberarse, y llamar al RPC en bucle no puede vaciar el
+  contador (cada liberación exige una reserva previa que lo incrementó).
+- **Content Studio migrado** (`src/lib/ai/content-studio.ts`), flujo CERRADO:
+  si el run no puede crearse en servidor, no se llama al proveedor (se libera
+  la reserva y la petición falla con 503); si el resultado no puede
+  persistirse, no se responde con éxito. Cuando la respuesta llega al
+  navegador, el resultado ya está en `generation_runs.result` — cerrar el
+  navegador no pierde una generación pagada. La ruta antigua sigue disponible
+  (y es la activa por defecto) tras el feature flag. Las otras diez
   funcionalidades NO se han migrado al flujo persistido; solo comparten el
   endurecimiento P0 a través de `runLegacyJsonTask`.
 - **Pruebas** (47 nuevas en `tests/ai-*.test.ts`): contratos, salidas
@@ -85,9 +103,10 @@ cambiar la experiencia visible del producto ni migrar todas las rutas de golpe.
 |---|---|
 | Zod v3 (`^3.25`) en lugar de v4 | `openai@4` declara peer `zod@^3`; v4 provoca conflicto de resolución. La API usada es idéntica. |
 | Dos esquemas para la salida de Content Studio (proveedor + Zod) | §8.2: el esquema estricto del proveedor solo garantiza forma; los rangos y reglas de negocio se validan en servidor. Un test impide que diverjan. |
-| Flag `CONTENT_STUDIO_V2` activado por defecto | La respuesta v2 es compatible con el cliente actual (misma forma + `runId`). El rollback es una variable de entorno, no un despliegue. |
-| Persistencia best-effort hasta ejecutar la migración | Si `generation_runs` no existe aún, la generación continúa y se registra una advertencia. Evita romper producción en el despliegue; la trazabilidad completa exige la migración. |
-| Liberación de cuota como RPC `SECURITY DEFINER` separada | `ai_usage` sigue siendo de solo lectura para el titular; reservar y liberar pasan por funciones con verificación de identidad. Si la RPC aún no existe, el comportamiento degrada al actual (slot consumido) y queda registrado. |
+| Flag `CONTENT_STUDIO_V2` APAGADO por defecto | El flujo v2 es estricto y exige la migración `ai-core` y `SUPABASE_SERVICE_ROLE_KEY`. Activarlo es una decisión de despliegue por entorno (`CONTENT_STUDIO_V2=1`); el rollback es quitar la variable, no desplegar. |
+| Persistencia estricta en v2 (`createRun`/`completeRun`) | Sin run registrado no se llama al proveedor; sin resultado persistido no se responde con éxito. Steps y eventos de uso siguen siendo observabilidad best-effort porque no invalidan una generación ya persistida. |
+| Cuota con reservas identificadas (`ai_usage_reservations`) | Un RPC de liberación sin identificador permitiría vaciar el contador llamándolo en bucle (hallazgo de auditoría). La máquina de estados `reserved -> settled/released` con transición atómica garantiza una sola liberación por reserva. |
+| Ledger escrito solo por `service_role` | Si el titular pudiera insertar o modificar runs/steps/eventos, las métricas y el coste serían falsificables. El cliente solo tiene `SELECT` de sus filas. |
 | Rutas legacy endurecidas vía `runLegacyJsonTask`, no migradas | P0 exige límites/`store:false`/delimitación en todo; la restricción de P2 prohíbe migrar las otras diez funcionalidades al flujo persistido en este corte. |
 | Contexto sobredimensionado se trunca (solo tareas legacy) | El historial de posts puede crecer sin límite; truncar el bloque de contexto (que es datos de apoyo) evita romper cuentas grandes. La entrada del usuario sí falla con error claro si excede el límite. |
 | Gemini queda solo en la ruta legacy de `content` | El gateway v2 es OpenAI-first según P2. Si OpenAI no está configurada y Gemini sí, la acción `content` usa automáticamente la ruta legacy. |
@@ -101,22 +120,29 @@ Archivo: `supabase/ai-core-migration.sql` (añadido también a `migrate-all`).
 npm run migrate:ai-core
 ```
 
-- Crea `generation_runs`, `generation_steps`, `usage_events` (RLS: el titular
-  lee y escribe solo sus filas; `usage_events` sin UPDATE/DELETE).
-- Crea `release_ai_usage(uuid, text)` (`SECURITY DEFINER`, `search_path`
-  fijado, floor en 0).
+- Crea `generation_runs`, `generation_steps`, `usage_events` y
+  `ai_usage_reservations` (RLS: el titular solo puede LEER sus filas; todas las
+  escrituras son de servidor). FK compuesta en steps y trigger en events
+  garantizan que `user_id` coincide con el dueño del run.
+- Crea `reserve_ai_usage`, `settle_ai_usage_reservation` y
+  `release_ai_usage_reservation` (`SECURITY DEFINER`, `search_path` fijado,
+  transición de estado atómica, contador con suelo en 0). Elimina la función
+  `release_ai_usage` de la revisión 1, que permitía liberaciones repetidas.
 - **No se ha ejecutado contra ninguna base de datos.** Ejecutarla primero en
-  staging, verificar, y después en producción.
+  staging, verificar con `npm run test:rls:ai-core`, y después en producción.
 
 ### Rollback
 
-1. **Código:** `CONTENT_STUDIO_V2=0` devuelve `content` a la ruta antigua al
-   instante (sin despliegue). El resto de cambios P0 no tiene flag: revertir el
-   commit si hiciera falta.
-2. **Base de datos:** la migración es aditiva; el código funciona sin ella.
-   Para revertirla por completo:
+1. **Código:** el flujo v2 solo se activa con `CONTENT_STUDIO_V2=1`; quitar la
+   variable devuelve `content` a la ruta antigua al instante (sin despliegue).
+   El resto de cambios P0 no tiene flag: revertir el commit si hiciera falta.
+2. **Base de datos:** la migración es aditiva; el código funciona sin ella
+   mientras el flag esté apagado. Para revertirla por completo:
    ```sql
-   DROP FUNCTION IF EXISTS public.release_ai_usage(UUID, TEXT);
+   DROP FUNCTION IF EXISTS public.reserve_ai_usage(UUID, TEXT, INTEGER);
+   DROP FUNCTION IF EXISTS public.settle_ai_usage_reservation(UUID, UUID);
+   DROP FUNCTION IF EXISTS public.release_ai_usage_reservation(UUID, UUID);
+   DROP TABLE IF EXISTS ai_usage_reservations;
    DROP TABLE IF EXISTS usage_events;
    DROP TABLE IF EXISTS generation_steps;
    DROP TABLE IF EXISTS generation_runs;
@@ -126,7 +152,7 @@ npm run migrate:ai-core
 
 | Variable | Efecto | Por defecto |
 |---|---|---|
-| `CONTENT_STUDIO_V2` | `0/false/off/legacy` desactiva el motor migrado | activado |
+| `CONTENT_STUDIO_V2` | `1/true/on` activa el motor migrado (exige migración `ai-core` + `SUPABASE_SERVICE_ROLE_KEY`) | apagado |
 | `AI_MODEL_TEXT_PREMIUM` | Modelo del alias `TEXT_PREMIUM_PRIMARY` | `gpt-4o-mini` |
 | `AI_MODEL_TEXT_STANDARD` | Modelo del alias `TEXT_STANDARD_PRIMARY` | `gpt-4o-mini` |
 | `AI_MODEL_TEXT_ECONOMY` | Modelo del alias `TEXT_ECONOMY_PRIMARY` | `gpt-4o-mini` |
@@ -134,17 +160,18 @@ npm run migrate:ai-core
 
 ## 5. Riesgos Y Pendientes Antes De P3
 
-- **Ejecutar la migración `ai-core` en staging y producción.** Hasta entonces,
-  los runs no se persisten (hay warning en logs) y la liberación de cuota
-  degrada al comportamiento actual. Tras aplicarla en staging, verificar el
-  aislamiento con `npm run test:rls:ai-core` (requiere `SUPABASE_TEST_DB_URL`
+- **Ejecutar la migración `ai-core` en staging** y verificar el aislamiento y
+  las reservas con `npm run test:rls:ai-core` (requiere `SUPABASE_TEST_DB_URL`
   apuntando a staging; el test nunca usa `SUPABASE_DB_URL` y revierte todo).
+  Solo después activar `CONTENT_STUDIO_V2=1` en ese entorno; con el flag
+  apagado, nada del flujo v2 se ejecuta.
 - **Rellenar la baseline** de `docs/COMPARATIVA-MODELOS-CONTENT-STUDIO.md` con
   una ejecución real del bake-off (requiere claves propias, fuera de CI).
-- **La liberación de cuota no es transaccional con el run**: si el proceso
-  muere entre el fallo del proveedor y el `release`, el slot queda consumido.
-  Es el mismo riesgo del sistema actual; la solución completa llega con la
-  outbox de P4.
+- **Si el proceso muere entre el fallo del proveedor y el `release`**, la
+  reserva queda en estado `reserved` y el slot consumido (nunca más permisivo
+  que el sistema actual). Las reservas huérfanas quedan identificadas en
+  `ai_usage_reservations` y podrán reconciliarse con un job; la solución
+  completa llega con la outbox de P4.
 - **Prompt de v2 vs legacy**: la instrucción v2 se apoya en Structured Outputs
   en lugar del bloque "Return JSON exactly". Conviene comparar unas cuantas
   generaciones reales antes de retirar el flag legacy definitivamente.

@@ -10,6 +10,7 @@ async function main() {
       "generation_runs",
       "generation_steps",
       "usage_events",
+      "ai_usage_reservations",
     ]);
     if (missing.length > 0) {
       throw new Error(`No se pudo verificar: ${missing.join(", ")}`);

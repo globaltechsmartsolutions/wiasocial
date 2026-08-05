@@ -22,6 +22,7 @@ const files = [
 
 const expectedTables = [
   "ai_coach_messages",
+  "ai_usage_reservations",
   "ai_usage",
   "audience_finder_reports",
   "calendar_items",

@@ -14,19 +14,21 @@ import {
   type ContentStudioOutput,
 } from "@/lib/ai/schemas/content-studio";
 import type { QuotaManager } from "@/lib/ai/quota";
-import type { RunPersistence } from "@/lib/ai/persistence";
+import { AIPersistenceError, type RunPersistence } from "@/lib/ai/persistence";
 
 /**
  * Ejecutor de Content Studio v2: primera tarea migrada al núcleo de IA.
  *
- * Orden del flujo (§6.1):
- *   validar entrada -> reservar cuota -> crear generation_run -> llamar al
- *   proveedor -> validar salida con esquema -> persistir resultado en servidor
- *   -> confirmar cuota. Si el proveedor o la validación fallan, la reserva se
- *   libera y el run queda registrado como fallido.
+ * Orden del flujo (§6.1), CERRADO tras auditoría:
+ *   validar entrada -> reservar cuota (reserva identificada) -> crear
+ *   generation_run (estricto: sin run no hay llamada al proveedor) -> llamar
+ *   al proveedor -> validar salida con esquema -> persistir resultado en
+ *   servidor (estricto: sin persistencia no hay respuesta de éxito) ->
+ *   confirmar la reserva. Cualquier fallo libera la reserva (una sola vez,
+ *   garantizado por la máquina de estados en SQL) y registra el run fallido.
  *
- * El resultado se guarda en servidor ANTES de responder: cerrar el navegador
- * no pierde una generación pagada.
+ * El resultado queda persistido en servidor antes de responder: cerrar el
+ * navegador no pierde una generación pagada.
  */
 
 export class ContentStudioValidationError extends Error {
@@ -44,7 +46,7 @@ export interface ContentStudioDeps {
 
 export interface ContentStudioRunResult {
   output: ContentStudioOutput;
-  runId: string | null;
+  runId: string;
 }
 
 const CONTENT_STUDIO_SYSTEM = `Act like a senior digital marketing professional. Prioritize positioning, ICP clarity, funnel stage, offer relevance, conversion intent, measurable KPIs and legal organic growth. Avoid generic advice, bots, spam, fake engagement or unverifiable claims.
@@ -102,17 +104,26 @@ export async function runContentStudio(
   const spec = getTaskSpec("content");
   const input = parseContentStudioInput(rawInput);
 
-  // 1. Reservar cuota antes de gastar dinero en el proveedor.
+  // 1. Reservar cuota antes de gastar dinero en el proveedor. La reserva es
+  //    una fila identificada: solo puede confirmarse o liberarse una vez.
   const reservation = await deps.quota.reserve();
 
-  // 2. Registrar la ejecución en servidor antes de llamar al proveedor.
-  const runId = await deps.persistence.createRun({
-    userId,
-    taskId: spec.id,
-    promptVersion: spec.promptVersion,
-    modelAlias: spec.modelAlias,
-    input,
-  });
+  // 2. Registrar la ejecución en servidor. ESTRICTO: si el run no queda
+  //    creado, se libera la reserva y NO se llama al proveedor.
+  let runId: string;
+  try {
+    runId = await deps.persistence.createRun({
+      userId,
+      taskId: spec.id,
+      promptVersion: spec.promptVersion,
+      modelAlias: spec.modelAlias,
+      input,
+    });
+  } catch (err) {
+    await deps.quota.release(reservation);
+    throw err;
+  }
+
   await deps.persistence.recordUsageEvent({
     runId,
     userId,
@@ -185,9 +196,14 @@ export async function runContentStudio(
       attempts: result.attempts,
     };
 
-    // 5. Persistir el resultado en servidor antes de responder al navegador.
+    // 5. Persistir el resultado en servidor ANTES de responder. ESTRICTO: si
+    //    esta escritura falla, la petición falla y la reserva se libera.
+    await deps.persistence.completeRun(runId, { result: validated.data, ...metrics });
+
+    // 6. Resultado persistido: confirmar la reserva (queda `settled` y ya no
+    //    puede liberarse). El resto es observabilidad best-effort.
+    await deps.quota.settle(reservation);
     await deps.persistence.finishStep(stepRowId, { status: "succeeded", ...metrics });
-    if (runId) await deps.persistence.completeRun(runId, { result: validated.data, ...metrics });
     await deps.persistence.recordUsageEvent({
       runId,
       userId,
@@ -200,25 +216,24 @@ export async function runContentStudio(
     return { output: validated.data, runId };
   } catch (err) {
     const normalized =
-      err instanceof AIGatewayError
+      err instanceof AIGatewayError || err instanceof AIPersistenceError
         ? err
         : new AIGatewayError("provider_error", err instanceof Error ? err.message : String(err));
 
-    // Un fallo del proveedor no debe consumir la cuota del usuario.
+    // Un fallo del proveedor o de la persistencia no debe consumir la cuota.
+    // La máquina de estados garantiza que esta liberación ocurre una sola vez.
     const released = await deps.quota.release(reservation);
 
     await deps.persistence.finishStep(stepRowId, {
       status: "failed",
-      errorCode: normalized.code,
+      errorCode: normalized instanceof AIGatewayError ? normalized.code : "persistence_error",
       errorMessage: normalized.message,
     });
-    if (runId) {
-      await deps.persistence.failRun(runId, {
-        errorCode: normalized.code,
-        errorMessage: normalized.message,
-        quotaReleased: released,
-      });
-    }
+    await deps.persistence.failRun(runId, {
+      errorCode: normalized instanceof AIGatewayError ? normalized.code : "persistence_error",
+      errorMessage: normalized.message,
+      quotaReleased: released,
+    });
     await deps.persistence.recordUsageEvent({
       runId,
       userId,

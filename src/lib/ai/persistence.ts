@@ -1,19 +1,30 @@
 import "server-only";
 
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { getSupabaseForUser } from "@/lib/supabase-admin";
+import { getSupabaseAdmin } from "@/lib/supabase-admin";
 
 /**
- * Persistencia de ejecuciones IA en servidor (§10 de la arquitectura).
+ * Persistencia de ejecuciones IA (§10 de la arquitectura). Revisión 2 tras
+ * auditoría:
  *
- * Cada generación migrada crea un `generation_run` antes de llamar al
- * proveedor y guarda el resultado en servidor al terminar, de modo que cerrar
- * el navegador no pierde una generación pagada.
- *
- * Todas las escrituras son best-effort: si las tablas aún no existen (la
- * migración `ai-core` no se ha ejecutado), se registra una advertencia y la
- * generación continúa. La trazabilidad completa exige ejecutar la migración.
+ * - Todas las escrituras usan el cliente service_role: el ledger
+ *   (`generation_runs`, `generation_steps`, `usage_events`) es de solo lectura
+ *   para el titular y no puede falsificarse desde el navegador.
+ * - `createRun` y `completeRun` son ESTRICTOS: si el run no puede registrarse
+ *   no se llama al proveedor, y si el resultado no puede persistirse no se
+ *   responde con éxito. Fallan con `AIPersistenceError`.
+ * - Steps y eventos de uso son observabilidad best-effort: su fallo se
+ *   registra en logs pero no invalida una generación ya persistida.
  */
+
+export class AIPersistenceError extends Error {
+  constructor(operation: string, detail: string) {
+    super(
+      `Persistencia de IA no disponible (${operation}): ${detail}. ¿Falta ejecutar 'npm run migrate:ai-core' o configurar SUPABASE_SERVICE_ROLE_KEY?`
+    );
+    this.name = "AIPersistenceError";
+  }
+}
 
 interface CreateRunParams {
   userId: string;
@@ -58,26 +69,31 @@ interface FinishStepParams extends RunUsageMetrics {
 }
 
 export interface RunPersistence {
-  createRun(params: CreateRunParams): Promise<string | null>;
+  /** Estricto: lanza AIPersistenceError si el run no queda registrado. */
+  createRun(params: CreateRunParams): Promise<string>;
+  /** Estricto: lanza AIPersistenceError si el resultado no queda persistido. */
   completeRun(runId: string, params: CompleteRunParams): Promise<void>;
   failRun(runId: string, params: FailRunParams): Promise<void>;
-  createStep(runId: string | null, userId: string, stepId: string): Promise<string | null>;
+  createStep(runId: string, userId: string, stepId: string): Promise<string | null>;
   finishStep(stepRowId: string | null, params: FinishStepParams): Promise<void>;
   recordUsageEvent(params: UsageEventParams): Promise<void>;
 }
 
 function warn(operation: string, detail: unknown) {
   const message = detail instanceof Error ? detail.message : String(detail);
-  console.warn(
-    `[ai-runs] ${operation} falló (¿migración ai-core pendiente? ejecuta 'npm run migrate:all'): ${message}`
-  );
+  console.warn(`[ai-runs] ${operation} falló: ${message}`);
 }
 
-export function createRunPersistence(token: string, client?: SupabaseClient): RunPersistence {
-  const getClient = () => client ?? getSupabaseForUser(token);
+function toMessage(detail: unknown): string {
+  return detail instanceof Error ? detail.message : String(detail);
+}
+
+export function createRunPersistence(client?: SupabaseClient): RunPersistence {
+  const getClient = () => client ?? getSupabaseAdmin();
 
   return {
     async createRun(params) {
+      let runId: string | null = null;
       try {
         const { data, error } = await getClient()
           .from("generation_runs")
@@ -93,16 +109,17 @@ export function createRunPersistence(token: string, client?: SupabaseClient): Ru
           .select("id")
           .single();
         if (error) throw error;
-        return (data?.id as string) ?? null;
+        runId = (data?.id as string) ?? null;
       } catch (err) {
-        warn("createRun", err);
-        return null;
+        throw new AIPersistenceError("createRun", toMessage(err));
       }
+      if (!runId) throw new AIPersistenceError("createRun", "no se obtuvo id del run");
+      return runId;
     },
 
     async completeRun(runId, params) {
       try {
-        const { error } = await getClient()
+        const { data, error } = await getClient()
           .from("generation_runs")
           .update({
             status: "completed",
@@ -116,10 +133,12 @@ export function createRunPersistence(token: string, client?: SupabaseClient): Ru
             attempts: params.attempts ?? null,
             finished_at: new Date().toISOString(),
           })
-          .eq("id", runId);
+          .eq("id", runId)
+          .select("id");
         if (error) throw error;
+        if (!data || data.length === 0) throw new Error(`el run ${runId} no existe`);
       } catch (err) {
-        warn("completeRun", err);
+        throw new AIPersistenceError("completeRun", toMessage(err));
       }
     },
 
@@ -149,7 +168,6 @@ export function createRunPersistence(token: string, client?: SupabaseClient): Ru
     },
 
     async createStep(runId, userId, stepId) {
-      if (!runId) return null;
       try {
         const { data, error } = await getClient()
           .from("generation_steps")
