@@ -62,11 +62,28 @@ function readSqlFile(file) {
   return readFileSync(join(projectRoot, file), "utf8");
 }
 
+const LOCAL_HOSTS = new Set(["localhost", "127.0.0.1", "::1", "[::1]"]);
+
+/**
+ * Una base local de desarrollo (supabase start) no expone TLS. Fuera de
+ * localhost se sigue exigiendo certificado válido: una migración contra un
+ * servidor remoto nunca debe aceptar una conexión sin verificar.
+ */
+function sslOptionsFor(connectionString) {
+  try {
+    const hostname = new URL(connectionString).hostname;
+    if (LOCAL_HOSTS.has(hostname)) return false;
+  } catch {
+    // Cadena no parseable: se mantiene la exigencia de TLS.
+  }
+  return { rejectUnauthorized: true };
+}
+
 export async function connectSupabase() {
   let lastError = null;
 
   for (const connectionString of buildConnectionStrings()) {
-    const client = new pg.Client({ connectionString, ssl: { rejectUnauthorized: true } });
+    const client = new pg.Client({ connectionString, ssl: sslOptionsFor(connectionString) });
     try {
       await client.connect();
       await client.query("SELECT 1");

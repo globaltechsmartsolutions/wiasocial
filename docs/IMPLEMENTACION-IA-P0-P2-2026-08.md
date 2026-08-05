@@ -132,8 +132,42 @@ npm run migrate:ai-core
   `release_ai_usage_reservation` (`SECURITY DEFINER`, `search_path` fijado,
   transición de estado atómica, contador con suelo en 0). Elimina la función
   `release_ai_usage` de la revisión 1, que permitía liberaciones repetidas.
-- **No se ha ejecutado contra ninguna base de datos.** Ejecutarla primero en
-  staging, verificar con `npm run test:rls:ai-core`, y después en producción.
+- **No se ha ejecutado contra ninguna base de datos remota.** Está verificada
+  contra un Supabase local (ver sección 3.1); aplicarla después en producción.
+
+### 3.1. Verificación local (sin tocar producción)
+
+El proyecto no tiene entorno de staging, así que la verificación se hace contra
+un Supabase local levantado con Docker. Puertos propios (54421-54429) para
+convivir con otros Supabase locales que puedan estar corriendo.
+
+```bash
+npx supabase start -x studio,edge-runtime,logflare,vector,imgproxy,storage-api,realtime,mailpit,supavisor
+```
+
+Aplicar el esquema **completo** (la migración `ai-core` depende de `ai_usage`,
+que crea `phase-zero-stabilization-migration.sql`). Se invoca el script de Node
+directamente, sin `npm run migrate:*`, porque esos comandos leen `.env.local` y
+ahí `SUPABASE_DB_URL` apunta a la base real:
+
+```bash
+SUPABASE_DB_URL="postgresql://postgres:postgres@127.0.0.1:54422/postgres" node scripts/migrate-all.mjs
+```
+
+Verificar aislamiento, ledger y reservas de cuota:
+
+```bash
+SUPABASE_TEST_DB_URL="postgresql://postgres:postgres@127.0.0.1:54422/postgres" npx vitest run
+```
+
+Para apagarlo: `npx supabase stop`. Los datos locales son desechables.
+
+**Resultado de la última ejecución (5 de agosto de 2026):** 33/33 tablas
+verificadas, 138 pruebas en verde incluidas las 16 de aislamiento del núcleo
+IA. Comprobado además de forma manual que, como usuario autenticado, están
+bloqueados con `42501`: leer identificadores de reserva, liberar o confirmar la
+propia reserva en vuelo, reservar con un límite inventado, poner el contador a
+cero y falsificar un `generation_run`.
 
 ### Rollback
 

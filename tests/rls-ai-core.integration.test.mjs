@@ -31,6 +31,18 @@ function loadEnvLocal() {
 loadEnvLocal();
 
 const connectionString = process.env.SUPABASE_TEST_DB_URL?.trim();
+
+// Una base local (supabase start) no expone TLS; una remota sí.
+function sslOptionsFor(url) {
+  try {
+    const { hostname } = new URL(url);
+    if (["localhost", "127.0.0.1", "::1", "[::1]"].includes(hostname)) return false;
+  } catch {
+    // Cadena no parseable: se intenta con TLS.
+  }
+  return { rejectUnauthorized: false };
+}
+
 const INSUFFICIENT_PRIVILEGE = "42501";
 const FOREIGN_KEY_VIOLATION = "23503";
 
@@ -62,34 +74,56 @@ describe.skipIf(!connectionString)("RLS y fiabilidad del núcleo IA (ledger + re
   }
 
   async function usageCount(userId, monthKey) {
-    const result = await client.query(
+    const result = await runAsServer(
       "SELECT count FROM ai_usage WHERE user_id = $1 AND month_key = $2",
       [userId, monthKey]
     );
+    expect(result.ok, result.message).toBe(true);
     return result.rows[0]?.count ?? 0;
   }
 
-  // Las RPC de cuota son de servidor: se ejecutan con la conexión sin rol de
-  // sesión (equivalente a service_role), nunca como `authenticated`.
+  /**
+   * Ejecuta como servidor (equivalente a service_role): sin rol de sesión y
+   * sin claims JWT. Es necesario limpiar `request.jwt.claims` porque
+   * `runAsUser` lo fija con alcance de transacción y `RESET ROLE` no lo borra:
+   * sin esto, una consulta "de servidor" heredaría la identidad del último
+   * usuario simulado y `auth.uid()` no sería NULL.
+   */
+  async function runAsServer(sql, params = []) {
+    await client.query("SAVEPOINT server_stmt");
+    try {
+      await client.query("SELECT set_config('request.jwt.claims', '{}', true)");
+      const result = await client.query(sql, params);
+      await client.query("RELEASE SAVEPOINT server_stmt");
+      return { ok: true, rowCount: result.rowCount, rows: result.rows };
+    } catch (error) {
+      await client.query("ROLLBACK TO SAVEPOINT server_stmt");
+      return { ok: false, code: error?.code, message: error?.message };
+    }
+  }
+
+  // Las RPC de cuota son de servidor: nunca ejecutables como `authenticated`.
   async function reserveAsServer(userId, monthKey, limit = 5) {
-    const result = await client.query("SELECT * FROM reserve_ai_usage($1, $2, $3)", [
+    const result = await runAsServer("SELECT * FROM reserve_ai_usage($1, $2, $3)", [
       userId,
       monthKey,
       limit,
     ]);
+    expect(result.ok, result.message).toBe(true);
     return result.rows[0];
   }
 
   async function releaseAsServer(userId, reservationId) {
-    const result = await client.query("SELECT * FROM release_ai_usage_reservation($1, $2)", [
+    const result = await runAsServer("SELECT * FROM release_ai_usage_reservation($1, $2)", [
       userId,
       reservationId,
     ]);
+    expect(result.ok, result.message).toBe(true);
     return result.rows[0];
   }
 
   beforeAll(async () => {
-    client = new pg.Client({ connectionString, ssl: { rejectUnauthorized: false } });
+    client = new pg.Client({ connectionString, ssl: sslOptionsFor(connectionString) });
     await client.connect();
 
     const { rows } = await client.query(
@@ -307,10 +341,11 @@ describe.skipIf(!connectionString)("RLS y fiabilidad del núcleo IA (ledger + re
     const reservation = await reserveAsServer(USER_A, monthKey);
     expect(await usageCount(USER_A, monthKey)).toBe(1);
 
-    const settle = await client.query("SELECT settle_ai_usage_reservation($1, $2) AS settled", [
+    const settle = await runAsServer("SELECT settle_ai_usage_reservation($1, $2) AS settled", [
       USER_A,
       reservation.reservation_id,
     ]);
+    expect(settle.ok, settle.message).toBe(true);
     expect(settle.rows[0].settled).toBe(true);
 
     const release = await releaseAsServer(USER_A, reservation.reservation_id);

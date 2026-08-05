@@ -28,6 +28,18 @@ function loadEnvLocal() {
 loadEnvLocal();
 
 const connectionString = process.env.SUPABASE_TEST_DB_URL?.trim();
+
+// Una base local (supabase start) no expone TLS; una remota sí.
+function sslOptionsFor(url) {
+  try {
+    const { hostname } = new URL(url);
+    if (["localhost", "127.0.0.1", "::1", "[::1]"].includes(hostname)) return false;
+  } catch {
+    // Cadena no parseable: se intenta con TLS.
+  }
+  return { rejectUnauthorized: false };
+}
+
 const INSUFFICIENT_PRIVILEGE = "42501";
 
 const USER_A = "00000000-0000-4000-8000-00000000a001";
@@ -85,7 +97,7 @@ describe.skipIf(!connectionString)("RLS de user_settings", () => {
   }
 
   beforeAll(async () => {
-    client = new pg.Client({ connectionString, ssl: { rejectUnauthorized: false } });
+    client = new pg.Client({ connectionString, ssl: sslOptionsFor(connectionString) });
     await client.connect();
     await client.query("BEGIN");
 
