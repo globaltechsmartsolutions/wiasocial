@@ -175,10 +175,11 @@ DO $$ BEGIN
     FOR SELECT USING (auth.uid() = user_id);
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
-DO $$ BEGIN
-  CREATE POLICY "ai_usage_reservations_select_own" ON ai_usage_reservations
-    FOR SELECT USING (auth.uid() = user_id);
-EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+-- ai_usage_reservations no es visible para el cliente: el identificador de
+-- reserva es una credencial de operación contable. Exponerlo permitiría al
+-- titular liberar su propia reserva en vuelo y quedarse con la generación.
+-- El usuario ve su consumo agregado en ai_usage, que es lo que necesita.
+DROP POLICY IF EXISTS "ai_usage_reservations_select_own" ON ai_usage_reservations;
 
 REVOKE ALL ON generation_runs FROM anon, authenticated;
 REVOKE ALL ON generation_steps FROM anon, authenticated;
@@ -187,7 +188,6 @@ REVOKE ALL ON ai_usage_reservations FROM anon, authenticated;
 GRANT SELECT ON generation_runs TO authenticated;
 GRANT SELECT ON generation_steps TO authenticated;
 GRANT SELECT ON usage_events TO authenticated;
-GRANT SELECT ON ai_usage_reservations TO authenticated;
 GRANT ALL ON generation_runs TO service_role;
 GRANT ALL ON generation_steps TO service_role;
 GRANT ALL ON usage_events TO service_role;
@@ -198,6 +198,14 @@ GRANT ALL ON ai_usage_reservations TO service_role;
 -- transacción. Liberar exige la transición atómica reserved -> released de ESA
 -- fila: repetir la llamada no vuelve a decrementar. Confirmar (settled) cierra
 -- la reserva para siempre.
+--
+-- Las tres funciones son EXCLUSIVAMENTE de servidor (solo service_role): un
+-- cliente autenticado que pudiera liberar su propia reserva en vuelo se
+-- quedaría con la generación sin consumir cuota. La guarda de identidad se
+-- mantiene por defensa en profundidad: si alguna vez las ejecutase un rol con
+-- sesión (auth.uid() no nulo), solo podría operar sobre su propio usuario.
+-- Para service_role auth.uid() es NULL y p_user_id lo fija el servidor a
+-- partir del token ya verificado en la ruta.
 
 CREATE OR REPLACE FUNCTION public.reserve_ai_usage(
   p_user_id UUID,
@@ -213,7 +221,7 @@ DECLARE
   current_count INTEGER;
   new_reservation UUID;
 BEGIN
-  IF auth.uid() IS NULL OR auth.uid() <> p_user_id THEN
+  IF auth.uid() IS NOT NULL AND auth.uid() <> p_user_id THEN
     RAISE EXCEPTION 'Not authorized to update this usage record';
   END IF;
 
@@ -263,7 +271,7 @@ SECURITY DEFINER
 SET search_path = public
 AS $$
 BEGIN
-  IF auth.uid() IS NULL OR auth.uid() <> p_user_id THEN
+  IF auth.uid() IS NOT NULL AND auth.uid() <> p_user_id THEN
     RAISE EXCEPTION 'Not authorized to update this usage record';
   END IF;
 
@@ -288,7 +296,7 @@ DECLARE
   reservation_month TEXT;
   current_count INTEGER;
 BEGIN
-  IF auth.uid() IS NULL OR auth.uid() <> p_user_id THEN
+  IF auth.uid() IS NOT NULL AND auth.uid() <> p_user_id THEN
     RAISE EXCEPTION 'Not authorized to update this usage record';
   END IF;
 
@@ -317,9 +325,12 @@ BEGIN
 END;
 $$;
 
-REVOKE ALL ON FUNCTION public.reserve_ai_usage(UUID, TEXT, INTEGER) FROM PUBLIC;
-REVOKE ALL ON FUNCTION public.settle_ai_usage_reservation(UUID, UUID) FROM PUBLIC;
-REVOKE ALL ON FUNCTION public.release_ai_usage_reservation(UUID, UUID) FROM PUBLIC;
-GRANT EXECUTE ON FUNCTION public.reserve_ai_usage(UUID, TEXT, INTEGER) TO authenticated, service_role;
-GRANT EXECUTE ON FUNCTION public.settle_ai_usage_reservation(UUID, UUID) TO authenticated, service_role;
-GRANT EXECUTE ON FUNCTION public.release_ai_usage_reservation(UUID, UUID) TO authenticated, service_role;
+-- Solo el servidor. Un cliente con permiso de ejecución podría liberar su
+-- propia reserva mientras la generación está en vuelo y quedarse con el
+-- resultado sin consumir cuota.
+REVOKE ALL ON FUNCTION public.reserve_ai_usage(UUID, TEXT, INTEGER) FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.settle_ai_usage_reservation(UUID, UUID) FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.release_ai_usage_reservation(UUID, UUID) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.reserve_ai_usage(UUID, TEXT, INTEGER) TO service_role;
+GRANT EXECUTE ON FUNCTION public.settle_ai_usage_reservation(UUID, UUID) TO service_role;
+GRANT EXECUTE ON FUNCTION public.release_ai_usage_reservation(UUID, UUID) TO service_role;

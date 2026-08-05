@@ -45,6 +45,29 @@ export function resolveModel(alias: ModelAlias): string {
   return config.fallback;
 }
 
+export interface ModelCapabilities {
+  /** Parámetro de límite de salida que acepta el modelo. */
+  maxOutputTokensParam: "max_tokens" | "max_completion_tokens";
+  /** Si el modelo acepta `temperature` explícita. */
+  supportsTemperature: boolean;
+}
+
+/**
+ * Los modelos de razonamiento de OpenAI (familias `o*` y `gpt-5*`) rechazan
+ * `max_tokens` —exigen `max_completion_tokens`— y no admiten `temperature`
+ * distinta de la de por defecto. Sin esto, cambiar un alias a uno de esos
+ * modelos devolvería HTTP 400 en todas las tareas, que es justo lo que el
+ * sistema de alias debía evitar (§7.1 de la arquitectura).
+ */
+export function getModelCapabilities(model: string): ModelCapabilities {
+  const normalized = model.trim().toLowerCase();
+  const isReasoningFamily = /^(o\d|gpt-5)/u.test(normalized);
+  return {
+    maxOutputTokensParam: isReasoningFamily ? "max_completion_tokens" : "max_tokens",
+    supportsTemperature: !isReasoningFamily,
+  };
+}
+
 /**
  * Precios de catálogo en USD por millón de tokens. Son ESTIMACIONES para
  * observabilidad interna, no facturación: se registran junto a cada ejecución

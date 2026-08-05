@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from "vitest";
 import { AI_TASK_REGISTRY, getTaskSpec, type AITaskId } from "@/lib/ai/task-registry";
-import { estimateCostUsd, resolveModel } from "@/lib/ai/model-aliases";
+import { estimateCostUsd, getModelCapabilities, resolveModel } from "@/lib/ai/model-aliases";
 import {
   CONTENT_STUDIO_PROVIDER_SCHEMA,
   contentStudioInputSchema,
@@ -123,6 +123,21 @@ describe("alias de modelos", () => {
     delete process.env.AI_MODEL_TEXT_PREMIUM;
     process.env.CONTENT_STUDIO_OPENAI_MODEL = "gpt-4o";
     expect(resolveModel("TEXT_PREMIUM_PRIMARY")).toBe("gpt-4o");
+  });
+
+  it("describe las capacidades por familia de modelo", () => {
+    for (const model of ["gpt-4o-mini", "gpt-4.1", "GPT-4O"]) {
+      expect(getModelCapabilities(model), model).toEqual({
+        maxOutputTokensParam: "max_tokens",
+        supportsTemperature: true,
+      });
+    }
+    for (const model of ["o1", "o3-mini", "o4-mini", "gpt-5.6-terra", " GPT-5 "]) {
+      expect(getModelCapabilities(model), model).toEqual({
+        maxOutputTokensParam: "max_completion_tokens",
+        supportsTemperature: false,
+      });
+    }
   });
 
   it("estima coste solo para modelos con precio conocido", () => {

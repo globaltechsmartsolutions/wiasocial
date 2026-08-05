@@ -3,7 +3,7 @@ import { enforceUserRateLimit, getAccessTokenFromRequest, getUserFromAccessToken
 import { enforceAIUsage } from "@/lib/ai-usage-guard";
 import { scoreInstagramProfile } from "@/lib/audit-scoring";
 import { isOpenAIConfigured } from "@/lib/openai";
-import { runLegacyJsonTask } from "@/lib/ai/legacy-call";
+import { assertInputWithinTaskLimit, runLegacyJsonTask } from "@/lib/ai/legacy-call";
 import { getSupabaseForUser } from "@/lib/supabase-admin";
 import type { AuditAIReport, AuditProfileInput } from "@/types/audit";
 import { readJsonObject } from "@/lib/request-validation";
@@ -68,6 +68,8 @@ export async function POST(request: Request) {
 
     const scores = scoreInstagramProfile(input);
     if (!skipAI && isOpenAIConfigured()) {
+      // El tamaño se valida antes de tocar el contador de cuota.
+      assertInputWithinTaskLimit("instagram-audit", { profile: input, scoring: scores });
       const usageBlocked = await enforceAIUsage(user.id, token);
       if (usageBlocked) return usageBlocked;
     }

@@ -48,6 +48,51 @@ function serializeForBudget(value: unknown): string {
 }
 
 /**
+ * Comprueba el tamaño de la entrada ANTES de que la ruta consuma cuota. Sin
+ * esto, una entrada demasiado grande gasta una generación del contador mensual
+ * sin llegar a llamar al proveedor.
+ */
+export function assertInputWithinTaskLimit(taskId: AITaskId, input: unknown): void {
+  const spec = getTaskSpec(taskId);
+  const size = serializeForBudget(input).length;
+  if (size > spec.maxInputChars) {
+    throw new AIInputTooLargeError(spec.id, size, spec.maxInputChars);
+  }
+}
+
+export interface ConversationMessage {
+  role: string;
+  content: string;
+}
+
+/**
+ * Recorta un historial de conversación al presupuesto de la tarea, conservando
+ * los mensajes más recientes. El historial es contexto de apoyo: dejar sin
+ * servicio a quien acumula conversación sería peor que responder con menos
+ * memoria. `reservedChars` cubre el mensaje actual y el resto de la entrada.
+ */
+export function trimConversationHistory(
+  taskId: AITaskId,
+  history: ConversationMessage[],
+  reservedChars: number
+): ConversationMessage[] {
+  const spec = getTaskSpec(taskId);
+  // Margen para las claves JSON del propio contenedor de la entrada.
+  const budget = spec.maxInputChars - reservedChars - 256;
+  if (budget <= 0) return [];
+
+  const kept: ConversationMessage[] = [];
+  let used = 0;
+  for (let index = history.length - 1; index >= 0; index -= 1) {
+    const size = serializeForBudget(history[index]).length;
+    if (used + size > budget) break;
+    used += size;
+    kept.unshift(history[index]);
+  }
+  return kept;
+}
+
+/**
  * El contexto de la app puede crecer sin control (historial de posts, captions
  * importados). Se recorta al presupuesto de la tarea en vez de fallar: es
  * información de apoyo, no la petición del usuario.
@@ -66,9 +111,10 @@ export async function runLegacyTask(options: LegacyTaskOptions): Promise<{ json:
   const mode = options.mode ?? "json";
 
   const inputSerialized = serializeForBudget(options.input);
-  if (inputSerialized.length > spec.maxInputChars) {
-    throw new AIInputTooLargeError(spec.id, inputSerialized.length, spec.maxInputChars);
-  }
+  // Segunda comprobación: las rutas ya validan el tamaño antes de consumir
+  // cuota con `assertInputWithinTaskLimit`, pero el límite se aplica aquí
+  // también para que ninguna llamada pueda saltárselo.
+  assertInputWithinTaskLimit(options.taskId, options.input);
 
   const contextBudget = spec.maxInputChars - inputSerialized.length;
   const context = truncateContext(options.context, contextBudget);

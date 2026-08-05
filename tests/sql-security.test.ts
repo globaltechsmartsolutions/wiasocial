@@ -34,7 +34,11 @@ describe("Supabase SQL security", () => {
       [...executableSql.matchAll(/CREATE POLICY\s+[^\r\n]+?\s+ON\s+(?:public\.)?([a-z_][a-z0-9_]*)/giu)]
         .map((match) => match[1].toLowerCase())
     );
-    const serverOnlyTables = new Set(["rate_limits", "stripe_events"]);
+    // Tablas sin política de usuario a propósito: solo las escribe y lee el
+    // servidor. ai_usage_reservations guarda identificadores de reserva de
+    // cuota; exponerlos permitiría al titular liberar su propia reserva en
+    // vuelo y quedarse con la generación sin consumirla.
+    const serverOnlyTables = new Set(["rate_limits", "stripe_events", "ai_usage_reservations"]);
 
     expect(
       [...tables].filter((table) => !policyTables.has(table) && !serverOnlyTables.has(table))

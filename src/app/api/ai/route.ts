@@ -8,7 +8,7 @@ import { isConfiguredEnvValue } from "@/lib/env";
 import { isOpenAIConfigured } from "@/lib/openai";
 import { readJsonObject } from "@/lib/request-validation";
 import { AIGatewayError, getModelGateway } from "@/lib/ai/gateway";
-import { AIInputTooLargeError, runLegacyJsonTask } from "@/lib/ai/legacy-call";
+import { AIInputTooLargeError, assertInputWithinTaskLimit, runLegacyJsonTask } from "@/lib/ai/legacy-call";
 import { isContentStudioV2Enabled } from "@/lib/ai/flags";
 import { getTaskSpec, type AITaskId } from "@/lib/ai/task-registry";
 import { buildUserMessage, UNTRUSTED_DATA_POLICY } from "@/lib/ai/untrusted";
@@ -436,21 +436,26 @@ export async function POST(request: Request) {
       return NextResponse.json({ ...output, runId });
     }
 
-    // ── Ruta antigua: contador simple antes de generar ────────────────────────
+    // ── Ruta antigua ──────────────────────────────────────────────────────────
+    // El tamaño de la entrada se valida ANTES de tocar el contador: una entrada
+    // fuera de límite no debe gastar una generación del plan.
+    const actionSpec = action === "content" ? null : LEGACY_ACTIONS[action];
+    const input: Record<string, unknown> = {};
+    if (actionSpec) {
+      for (const key of actionSpec.inputKeys) {
+        if (params[key] !== undefined) input[key] = params[key];
+      }
+    }
+    assertInputWithinTaskLimit(action, actionSpec ? input : params);
+
     const usageBlocked = await enforceAIUsage(user.id, token);
     if (usageBlocked) return usageBlocked;
 
     const context = await buildUserAIContext(user.id, token);
 
-    if (action === "content") {
+    if (!actionSpec) {
       const result = await runLegacyContent(params, locale, context);
       return NextResponse.json(result);
-    }
-
-    const actionSpec = LEGACY_ACTIONS[action];
-    const input: Record<string, unknown> = {};
-    for (const key of actionSpec.inputKeys) {
-      if (params[key] !== undefined) input[key] = params[key];
     }
 
     const result = await runLegacyJsonTask({

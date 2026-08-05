@@ -1,7 +1,7 @@
 import "server-only";
 
 import { reserveAIUsage, type UsageReservation } from "@/lib/ai-usage";
-import { getSupabaseForUser } from "@/lib/supabase-admin";
+import { getSupabaseAdmin } from "@/lib/supabase-admin";
 
 /**
  * Gestión de cuota del flujo migrado (§11 de la arquitectura), con reservas
@@ -18,6 +18,11 @@ import { getSupabaseForUser } from "@/lib/supabase-admin";
  * `settle` y `release` son best-effort frente a fallos de red: si no llegan a
  * ejecutarse, la reserva queda `reserved` y el slot consumido (mismo
  * comportamiento que el contador actual, nunca más permisivo).
+ *
+ * Las tres operaciones usan service role. El rol `authenticated` no tiene
+ * permiso de ejecución sobre las RPC: si lo tuviera, el titular podría liberar
+ * su propia reserva mientras la generación está en vuelo y quedarse con el
+ * resultado sin consumir cuota.
  */
 
 type QuotaReservation = UsageReservation;
@@ -36,7 +41,7 @@ export function createQuotaManager(userId: string, token: string): QuotaManager 
 
     async settle(reservation) {
       try {
-        const sb = getSupabaseForUser(token);
+        const sb = getSupabaseAdmin();
         const { data, error } = await sb.rpc("settle_ai_usage_reservation", {
           p_user_id: userId,
           p_reservation_id: reservation.reservationId,
@@ -53,7 +58,7 @@ export function createQuotaManager(userId: string, token: string): QuotaManager 
 
     async release(reservation) {
       try {
-        const sb = getSupabaseForUser(token);
+        const sb = getSupabaseAdmin();
         const { data, error } = await sb.rpc("release_ai_usage_reservation", {
           p_user_id: userId,
           p_reservation_id: reservation.reservationId,

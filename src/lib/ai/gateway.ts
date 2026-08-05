@@ -1,7 +1,12 @@
 import "server-only";
 
 import { openai, isOpenAIConfigured } from "@/lib/openai";
-import { estimateCostUsd, resolveModel, type ModelAlias } from "@/lib/ai/model-aliases";
+import {
+  estimateCostUsd,
+  getModelCapabilities,
+  resolveModel,
+  type ModelAlias,
+} from "@/lib/ai/model-aliases";
 
 /**
  * ModelGateway: única puerta de salida hacia proveedores de IA.
@@ -169,6 +174,7 @@ export function createModelGateway(deps: GatewayDependencies = {}): ModelGateway
       }
 
       const model = request.modelOverride?.trim() || resolveModel(request.modelAlias);
+      const capabilities = getModelCapabilities(model);
       const format = request.responseFormat ?? { type: "json_object" as const };
       const responseFormat = buildResponseFormat(format);
       const startedAt = Date.now();
@@ -183,12 +189,16 @@ export function createModelGateway(deps: GatewayDependencies = {}): ModelGateway
               { role: "system", content: request.system },
               ...request.messages,
             ],
-            max_tokens: request.maxOutputTokens,
+            // El nombre del parámetro depende de la familia del modelo: los de
+            // razonamiento rechazan `max_tokens`.
+            [capabilities.maxOutputTokensParam]: request.maxOutputTokens,
             // Nunca almacenar prompts/respuestas en el proveedor. Si algún día
             // hiciera falta, debe documentarse la razón junto a este flag.
             store: false,
           };
-          if (request.temperature !== undefined) body.temperature = request.temperature;
+          if (request.temperature !== undefined && capabilities.supportsTemperature) {
+            body.temperature = request.temperature;
+          }
           if (responseFormat) body.response_format = responseFormat;
 
           const completion = await client.chat.completions.create(body, {

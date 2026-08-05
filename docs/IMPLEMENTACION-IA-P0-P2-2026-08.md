@@ -106,7 +106,11 @@ por el servidor.
 | Flag `CONTENT_STUDIO_V2` APAGADO por defecto | El flujo v2 es estricto y exige la migración `ai-core` y `SUPABASE_SERVICE_ROLE_KEY`. Activarlo es una decisión de despliegue por entorno (`CONTENT_STUDIO_V2=1`); el rollback es quitar la variable, no desplegar. |
 | Persistencia estricta en v2 (`createRun`/`completeRun`) | Sin run registrado no se llama al proveedor; sin resultado persistido no se responde con éxito. Steps y eventos de uso siguen siendo observabilidad best-effort porque no invalidan una generación ya persistida. |
 | Cuota con reservas identificadas (`ai_usage_reservations`) | Un RPC de liberación sin identificador permitiría vaciar el contador llamándolo en bucle (hallazgo de auditoría). La máquina de estados `reserved -> settled/released` con transición atómica garantiza una sola liberación por reserva. |
+| Las RPC de cuota son exclusivas de `service_role` | Con `EXECUTE` concedido a `authenticated`, el titular podía leer el id de su reserva en vuelo y liberarla desde el navegador, quedándose con la generación sin consumir cuota (segunda auditoría). La tabla de reservas tampoco es legible por el cliente: el identificador es una credencial de operación contable. |
 | Ledger escrito solo por `service_role` | Si el titular pudiera insertar o modificar runs/steps/eventos, las métricas y el coste serían falsificables. El cliente solo tiene `SELECT` de sus filas. |
+| Tamaño de entrada validado antes de reservar cuota | Validar después hacía que una entrada fuera de límite gastara una generación del contador mensual sin llegar al proveedor, y devolvía 500 en vez de 400. |
+| Historial del AI Coach recortado por presupuesto | Al delimitarlo como dato no confiable pasó a contar contra `maxInputChars`; rechazar la petición dejaba sin servicio a quien acumulaba conversación. Se conservan los mensajes más recientes que quepan. |
+| Parámetros del proveedor según la familia del modelo | El gateway emitía siempre `max_tokens` y `temperature`, que las familias `o*` y `gpt-5*` rechazan con HTTP 400. Sin esto, cambiar un alias —el propósito del registro— rompía las 23 tareas. |
 | Rutas legacy endurecidas vía `runLegacyJsonTask`, no migradas | P0 exige límites/`store:false`/delimitación en todo; la restricción de P2 prohíbe migrar las otras diez funcionalidades al flujo persistido en este corte. |
 | Contexto sobredimensionado se trunca (solo tareas legacy) | El historial de posts puede crecer sin límite; truncar el bloque de contexto (que es datos de apoyo) evita romper cuentas grandes. La entrada del usuario sí falla con error claro si excede el límite. |
 | Gemini queda solo en la ruta legacy de `content` | El gateway v2 es OpenAI-first según P2. Si OpenAI no está configurada y Gemini sí, la acción `content` usa automáticamente la ruta legacy. |
@@ -181,5 +185,14 @@ npm run migrate:ai-core
 - **Coste estimado ≠ factura**: la tabla de precios de `model-aliases.ts` es
   manual; revisar contra la factura del proveedor y actualizar al cambiar de
   modelo.
+- **Las violaciones de contrato no se reintentan (decisión consciente, revisar
+  en P3).** `maxAttempts` solo cubre errores del proveedor dentro del gateway;
+  la validación Zod ocurre después, así que una salida bien formada que
+  incumple un rango —por ejemplo menos de tres slides de carrusel, mínimo que
+  el esquema estricto del proveedor no puede expresar— falla sin reintento,
+  mientras que un JSON corrupto sí se reintenta. Es coherente con dejar la
+  reparación localizada para P3, pero conviene medir su frecuencia con
+  `generation_runs.error_code = 'invalid_output'` antes de decidir si merece un
+  reintento propio.
 - El `runId` se devuelve en la respuesta de `content` pero la UI todavía no lo
   usa (recuperación de runs perdidos será parte de P3/P4).

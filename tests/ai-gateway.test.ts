@@ -156,6 +156,26 @@ describe("ModelGateway (adaptador OpenAI)", () => {
     expect((error as AIGatewayError).code).toBe("not_configured");
   });
 
+  it("usa max_tokens y temperature con los modelos de chat clásicos", async () => {
+    const { client, calls } = fakeClient([{ content: "{}" }]);
+    await gatewayWith(client).generate({ ...baseRequest, modelOverride: "gpt-4o-mini" });
+
+    expect(calls[0].body.max_tokens).toBe(500);
+    expect(calls[0].body.max_completion_tokens).toBeUndefined();
+    expect(calls[0].body.temperature).toBe(0.5);
+  });
+
+  it("cambia a max_completion_tokens y omite temperature en modelos de razonamiento", async () => {
+    for (const model of ["o3-mini", "gpt-5.6-terra"]) {
+      const { client, calls } = fakeClient([{ content: "{}" }]);
+      await gatewayWith(client).generate({ ...baseRequest, modelOverride: model });
+
+      expect(calls[0].body.max_completion_tokens, model).toBe(500);
+      expect(calls[0].body.max_tokens, model).toBeUndefined();
+      expect(calls[0].body.temperature, model).toBeUndefined();
+    }
+  });
+
   it("usa esquema estricto cuando el formato es json_schema", async () => {
     const { client, calls } = fakeClient([{ content: '{"a":1}' }]);
     await gatewayWith(client).generate({

@@ -3,7 +3,12 @@ import { enforceUserRateLimit, getAccessTokenFromRequest, getUserFromAccessToken
 import { enforceAIUsage } from "@/lib/ai-usage-guard";
 import { buildUserAIContext } from "@/lib/ai-context";
 import { isOpenAIConfigured } from "@/lib/openai";
-import { runLegacyTask } from "@/lib/ai/legacy-call";
+import {
+  AIInputTooLargeError,
+  assertInputWithinTaskLimit,
+  runLegacyTask,
+  trimConversationHistory,
+} from "@/lib/ai/legacy-call";
 import { getSupabaseForUser } from "@/lib/supabase-admin";
 import { readJsonObject } from "@/lib/request-validation";
 
@@ -51,15 +56,25 @@ export async function POST(request: Request) {
       .order("created_at", { ascending: false })
       .limit(12);
 
+    // El historial guardado es contenido de usuario: viaja DENTRO del bloque
+    // no confiable, nunca como turnos user/assistant crudos. Se recorta al
+    // presupuesto de la tarea para que una conversación larga no deje al coach
+    // sin servicio.
+    const conversationHistory = trimConversationHistory(
+      "ai-coach",
+      (history ?? []).reverse().map((m) => ({
+        role: m.role as string,
+        content: m.content as string,
+      })),
+      message.length
+    );
+
+    // Antes de consumir cuota: una entrada fuera de límite no debe gastar una
+    // generación del contador mensual.
+    assertInputWithinTaskLimit("ai-coach", { message, conversationHistory });
+
     const usageBlocked = await enforceAIUsage(user.id, token);
     if (usageBlocked) return usageBlocked;
-
-    // El historial guardado es contenido de usuario: viaja DENTRO del bloque
-    // no confiable, nunca como turnos user/assistant crudos.
-    const conversationHistory = (history ?? []).reverse().map((m) => ({
-      role: m.role as string,
-      content: m.content as string,
-    }));
 
     const { text } = await runLegacyTask({
       taskId: "ai-coach",
@@ -81,6 +96,9 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ reply });
   } catch (err) {
+    if (err instanceof AIInputTooLargeError) {
+      return NextResponse.json({ error: err.message }, { status: 400 });
+    }
     return NextResponse.json({ error: err instanceof Error ? err.message : "Coach error" }, { status: 500 });
   }
 }

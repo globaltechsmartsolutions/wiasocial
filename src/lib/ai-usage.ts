@@ -1,6 +1,6 @@
 import "server-only";
 
-import { getSupabaseForUser } from "@/lib/supabase-admin";
+import { getSupabaseAdmin, getSupabaseForUser } from "@/lib/supabase-admin";
 
 export interface PlanUsagePolicy {
   /** Hard monthly ceiling. Always finite, including on commercially unlimited plans. */
@@ -123,12 +123,16 @@ export interface UsageReservation extends UsageState {
  * una fila `reserved` en la misma transacción (RPC `reserve_ai_usage`). La
  * reserva solo puede confirmarse o liberarse UNA vez, mediante la transición
  * atómica de estado de esa fila concreta.
+ *
+ * Las RPC de cuota se invocan con service role: el cliente no tiene permiso de
+ * ejecución para que no pueda liberar su propia reserva en vuelo. `userId`
+ * procede siempre del token ya verificado en la ruta.
  */
 export async function reserveAIUsage(userId: string, token: string): Promise<UsageReservation> {
   const monthKey = currentMonthKey();
   const plan = await getUserPlan(userId, token);
   const policy = getPlanUsagePolicy(plan);
-  const sb = getSupabaseForUser(token);
+  const sb = getSupabaseAdmin();
 
   const { data, error } = await sb.rpc("reserve_ai_usage", {
     p_user_id: userId,

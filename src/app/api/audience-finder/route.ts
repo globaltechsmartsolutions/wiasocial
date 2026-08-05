@@ -3,7 +3,7 @@ import { enforceUserRateLimit, getAccessTokenFromRequest, getUserFromAccessToken
 import { enforceAIUsage } from "@/lib/ai-usage-guard";
 import { buildUserAIContext } from "@/lib/ai-context";
 import { isOpenAIConfigured } from "@/lib/openai";
-import { runLegacyJsonTask } from "@/lib/ai/legacy-call";
+import { assertInputWithinTaskLimit, runLegacyJsonTask } from "@/lib/ai/legacy-call";
 import { getSupabaseForUser } from "@/lib/supabase-admin";
 import { readJsonObject } from "@/lib/request-validation";
 import type {
@@ -118,6 +118,9 @@ export async function POST(request: Request) {
   };
 
   const context = await buildUserAIContext(user.id, token);
+
+  // El tamaño se valida antes de tocar el contador de cuota.
+  assertInputWithinTaskLimit("audience-finder", input);
 
   const usageBlocked = await enforceAIUsage(user.id, token);
   if (usageBlocked) return usageBlocked;

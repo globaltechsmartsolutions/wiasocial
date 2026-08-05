@@ -69,13 +69,22 @@ describe.skipIf(!connectionString)("RLS y fiabilidad del núcleo IA (ledger + re
     return result.rows[0]?.count ?? 0;
   }
 
-  async function reserveAs(userId, monthKey, limit = 5) {
-    const result = await runAsUser(userId, "SELECT * FROM reserve_ai_usage($1, $2, $3)", [
+  // Las RPC de cuota son de servidor: se ejecutan con la conexión sin rol de
+  // sesión (equivalente a service_role), nunca como `authenticated`.
+  async function reserveAsServer(userId, monthKey, limit = 5) {
+    const result = await client.query("SELECT * FROM reserve_ai_usage($1, $2, $3)", [
       userId,
       monthKey,
       limit,
     ]);
-    expect(result.ok).toBe(true);
+    return result.rows[0];
+  }
+
+  async function releaseAsServer(userId, reservationId) {
+    const result = await client.query("SELECT * FROM release_ai_usage_reservation($1, $2)", [
+      userId,
+      reservationId,
+    ]);
     return result.rows[0];
   }
 
@@ -243,51 +252,69 @@ describe.skipIf(!connectionString)("RLS y fiabilidad del núcleo IA (ledger + re
     expect(reservationWrite.code).toBe(INSUFFICIENT_PRIVILEGE);
   });
 
+  it("el cliente no puede ejecutar las funciones de cuota, ni sobre su propia reserva", async () => {
+    // Este es el control que impide quedarse con la generación sin pagar
+    // cuota: liberar una reserva propia en vuelo. Debe ser imposible desde el
+    // navegador aunque el usuario conociera el identificador.
+    const monthKey = "2099-10";
+    const reservation = await reserveAsServer(USER_A, monthKey);
+    expect(reservation.reserved).toBe(true);
+
+    const attempts = [
+      ["SELECT * FROM reserve_ai_usage($1, $2, 99)", [USER_A, monthKey]],
+      ["SELECT settle_ai_usage_reservation($1, $2)", [USER_A, reservation.reservation_id]],
+      ["SELECT * FROM release_ai_usage_reservation($1, $2)", [USER_A, reservation.reservation_id]],
+    ];
+    for (const [sql, params] of attempts) {
+      const result = await runAsUser(USER_A, sql, params);
+      expect(result.ok, sql).toBe(false);
+      expect(result.code, sql).toBe(INSUFFICIENT_PRIVILEGE);
+    }
+
+    // La reserva sigue viva y el consumo intacto.
+    expect(await usageCount(USER_A, monthKey)).toBe(1);
+  });
+
+  it("el cliente no puede leer los identificadores de reserva", async () => {
+    const result = await runAsUser(USER_A, "SELECT id FROM ai_usage_reservations WHERE user_id = $1", [
+      USER_A,
+    ]);
+    expect(result.ok).toBe(false);
+    expect(result.code).toBe(INSUFFICIENT_PRIVILEGE);
+  });
+
   it("una reserva solo puede liberarse UNA vez", async () => {
     const monthKey = "2099-02";
-    const reservation = await reserveAs(USER_A, monthKey);
+    const reservation = await reserveAsServer(USER_A, monthKey);
     expect(reservation.reserved).toBe(true);
     expect(await usageCount(USER_A, monthKey)).toBe(1);
 
-    const first = await runAsUser(USER_A, "SELECT * FROM release_ai_usage_reservation($1, $2)", [
-      USER_A,
-      reservation.reservation_id,
-    ]);
-    expect(first.ok).toBe(true);
-    expect(first.rows[0].released).toBe(true);
+    const first = await releaseAsServer(USER_A, reservation.reservation_id);
+    expect(first.released).toBe(true);
     expect(await usageCount(USER_A, monthKey)).toBe(0);
 
-    // Repetir la liberación no vuelve a decrementar: el contador no puede
-    // vaciarse llamando al RPC en bucle.
+    // Repetir la liberación no vuelve a decrementar: ni siquiera el servidor
+    // puede vaciar el contador llamando al RPC en bucle.
     for (let i = 0; i < 3; i += 1) {
-      const again = await runAsUser(USER_A, "SELECT * FROM release_ai_usage_reservation($1, $2)", [
-        USER_A,
-        reservation.reservation_id,
-      ]);
-      expect(again.ok).toBe(true);
-      expect(again.rows[0].released).toBe(false);
+      const again = await releaseAsServer(USER_A, reservation.reservation_id);
+      expect(again.released).toBe(false);
     }
     expect(await usageCount(USER_A, monthKey)).toBe(0);
   });
 
   it("una reserva confirmada (settled) ya no puede liberarse", async () => {
     const monthKey = "2099-03";
-    const reservation = await reserveAs(USER_A, monthKey);
+    const reservation = await reserveAsServer(USER_A, monthKey);
     expect(await usageCount(USER_A, monthKey)).toBe(1);
 
-    const settle = await runAsUser(USER_A, "SELECT settle_ai_usage_reservation($1, $2) AS settled", [
+    const settle = await client.query("SELECT settle_ai_usage_reservation($1, $2) AS settled", [
       USER_A,
       reservation.reservation_id,
     ]);
-    expect(settle.ok).toBe(true);
     expect(settle.rows[0].settled).toBe(true);
 
-    const release = await runAsUser(USER_A, "SELECT * FROM release_ai_usage_reservation($1, $2)", [
-      USER_A,
-      reservation.reservation_id,
-    ]);
-    expect(release.ok).toBe(true);
-    expect(release.rows[0].released).toBe(false);
+    const release = await releaseAsServer(USER_A, reservation.reservation_id);
+    expect(release.released).toBe(false);
     // El consumo confirmado permanece.
     expect(await usageCount(USER_A, monthKey)).toBe(1);
   });
@@ -295,12 +322,9 @@ describe.skipIf(!connectionString)("RLS y fiabilidad del núcleo IA (ledger + re
   it("reservar y liberar en bucle nunca genera cuota gratis", async () => {
     const monthKey = "2099-04";
     for (let i = 0; i < 3; i += 1) {
-      const reservation = await reserveAs(USER_A, monthKey);
-      const release = await runAsUser(USER_A, "SELECT * FROM release_ai_usage_reservation($1, $2)", [
-        USER_A,
-        reservation.reservation_id,
-      ]);
-      expect(release.rows[0].released).toBe(true);
+      const reservation = await reserveAsServer(USER_A, monthKey);
+      const release = await releaseAsServer(USER_A, reservation.reservation_id);
+      expect(release.released).toBe(true);
     }
     // Neto cero: cada liberación exige una reserva previa que incrementó.
     expect(await usageCount(USER_A, monthKey)).toBe(0);
@@ -308,35 +332,19 @@ describe.skipIf(!connectionString)("RLS y fiabilidad del núcleo IA (ledger + re
 
   it("el límite se sigue aplicando en la reserva", async () => {
     const monthKey = "2099-05";
-    await reserveAs(USER_A, monthKey, 1);
-    const second = await runAsUser(USER_A, "SELECT * FROM reserve_ai_usage($1, $2, 1)", [
-      USER_A,
-      monthKey,
-    ]);
-    expect(second.ok).toBe(true);
-    expect(second.rows[0].reserved).toBe(false);
-    expect(second.rows[0].reservation_id).toBeNull();
+    await reserveAsServer(USER_A, monthKey, 1);
+    const second = await reserveAsServer(USER_A, monthKey, 1);
+    expect(second.reserved).toBe(false);
+    expect(second.reservation_id).toBeNull();
   });
 
-  it("nadie puede tocar las reservas de otro usuario", async () => {
+  it("una reserva no puede liberarse a nombre de otro usuario", async () => {
     const monthKey = "2099-06";
-    const reservation = await reserveAs(USER_A, monthKey);
+    const reservation = await reserveAsServer(USER_A, monthKey);
 
-    // Suplantar el p_user_id ajeno falla la autorización.
-    const impersonate = await runAsUser(USER_B, "SELECT * FROM release_ai_usage_reservation($1, $2)", [
-      USER_A,
-      reservation.reservation_id,
-    ]);
-    expect(impersonate.ok).toBe(false);
-    expect(impersonate.message).toMatch(/Not authorized/);
-
-    // Con su propio id, la reserva ajena simplemente no existe para él.
-    const foreign = await runAsUser(USER_B, "SELECT * FROM release_ai_usage_reservation($1, $2)", [
-      USER_B,
-      reservation.reservation_id,
-    ]);
-    expect(foreign.ok).toBe(true);
-    expect(foreign.rows[0].released).toBe(false);
+    // Con el id de B, la reserva de A no existe: no se decrementa nada.
+    const foreign = await releaseAsServer(USER_B, reservation.reservation_id);
+    expect(foreign.released).toBe(false);
     expect(await usageCount(USER_A, monthKey)).toBe(1);
   });
 });

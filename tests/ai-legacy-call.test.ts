@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
 import type { GatewayRequest, ModelGateway } from "@/lib/ai/gateway";
-import { AIInputTooLargeError, runLegacyJsonTask, runLegacyTask } from "@/lib/ai/legacy-call";
+import {
+  AIInputTooLargeError,
+  assertInputWithinTaskLimit,
+  runLegacyJsonTask,
+  runLegacyTask,
+  trimConversationHistory,
+} from "@/lib/ai/legacy-call";
 
 function fakeGateway(json: unknown = { ok: true }) {
   const requests: GatewayRequest[] = [];
@@ -81,6 +87,38 @@ describe("runLegacyJsonTask (P0 para rutas no migradas)", () => {
     const message = requests[0].messages[0].content;
     expect(message).toContain("[contexto truncado por límite de tamaño]");
     expect(message.length).toBeLessThan(30_000);
+  });
+
+  it("assertInputWithinTaskLimit permite validar antes de consumir cuota", () => {
+    expect(() => assertInputWithinTaskLimit("hook-analyze", { hook: "corto" })).not.toThrow();
+    expect(() =>
+      assertInputWithinTaskLimit("hook-analyze", { hook: "x".repeat(20_000) })
+    ).toThrow(AIInputTooLargeError);
+  });
+
+  it("trimConversationHistory conserva los mensajes recientes dentro del presupuesto", () => {
+    const history = Array.from({ length: 12 }, (_, index) => ({
+      role: index % 2 === 0 ? "user" : "assistant",
+      content: `${index}-${"y".repeat(4_000)}`,
+    }));
+
+    const trimmed = trimConversationHistory("ai-coach", history, 100);
+
+    // Cabe solo una parte: se conservan los últimos mensajes, en orden.
+    expect(trimmed.length).toBeGreaterThan(0);
+    expect(trimmed.length).toBeLessThan(history.length);
+    expect(trimmed.at(-1)).toEqual(history.at(-1));
+    expect(JSON.stringify(trimmed).length).toBeLessThan(24_000);
+
+    // Y el resultado recortado ya no dispara el límite de la tarea.
+    expect(() =>
+      assertInputWithinTaskLimit("ai-coach", { message: "hola", conversationHistory: trimmed })
+    ).not.toThrow();
+  });
+
+  it("trimConversationHistory devuelve vacío si el mensaje agota el presupuesto", () => {
+    const history = [{ role: "user", content: "previo" }];
+    expect(trimConversationHistory("ai-coach", history, 24_000)).toEqual([]);
   });
 
   it("en modo texto, el historial de chat viaja dentro del bloque no confiable", async () => {
