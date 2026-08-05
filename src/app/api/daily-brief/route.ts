@@ -2,7 +2,8 @@ import { NextResponse } from "next/server";
 import { enforceUserRateLimit, getAccessTokenFromRequest, getUserFromAccessToken } from "@/lib/auth-server";
 import { enforceAIUsage } from "@/lib/ai-usage-guard";
 import { buildUserAIContext } from "@/lib/ai-context";
-import { openai, isOpenAIConfigured } from "@/lib/openai";
+import { isOpenAIConfigured } from "@/lib/openai";
+import { runLegacyJsonTask } from "@/lib/ai/legacy-call";
 import { getSupabaseForUser } from "@/lib/supabase-admin";
 import { readJsonObject } from "@/lib/request-validation";
 
@@ -50,17 +51,13 @@ export async function POST(request: Request) {
   }
 
   const context = await buildUserAIContext(user.id, token);
-  const lang = locale === "es" ? "Spanish" : "English";
 
   const usageBlocked = await enforceAIUsage(user.id, token);
   if (usageBlocked) return usageBlocked;
 
-  const completion = await openai.chat.completions.create({
-    model: "gpt-4o-mini",
-    messages: [
-      {
-        role: "system",
-        content: `You are a senior digital marketing director for Instagram-led businesses. Generate a personalized daily brief that connects content, audience, offer, funnel stage, lead generation and conversion. Use ONLY provided context data. Make every action measurable and commercially useful. Respond in ${lang}. Return JSON only:
+  const brief = await runLegacyJsonTask({
+    taskId: "daily-brief",
+    system: `You are a senior digital marketing director for Instagram-led businesses. Generate a personalized daily brief that connects content, audience, offer, funnel stage, lead generation and conversion. Use ONLY provided context data. Make every action measurable and commercially useful. Return JSON only:
 {
   "headline": string,
   "focus": string,
@@ -71,17 +68,10 @@ export async function POST(request: Request) {
   "growthTip": string,
   "motivation": string
 }`,
-      },
-      { role: "user", content: JSON.stringify(context) },
-    ],
-    response_format: { type: "json_object" },
-    temperature: 0.75,
+    instruction: "Generate today's personalized daily brief using only the data in app_context.",
+    context,
+    locale,
   });
-
-  const content = completion.choices[0]?.message?.content;
-  if (!content) return NextResponse.json({ error: "No AI response" }, { status: 500 });
-
-  const brief = JSON.parse(content);
   await sb.from("daily_briefs").upsert({
     user_id: user.id,
     brief_date: today,

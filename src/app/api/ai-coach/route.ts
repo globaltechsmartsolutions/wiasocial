@@ -2,7 +2,8 @@ import { NextResponse } from "next/server";
 import { enforceUserRateLimit, getAccessTokenFromRequest, getUserFromAccessToken } from "@/lib/auth-server";
 import { enforceAIUsage } from "@/lib/ai-usage-guard";
 import { buildUserAIContext } from "@/lib/ai-context";
-import { openai, isOpenAIConfigured } from "@/lib/openai";
+import { isOpenAIConfigured } from "@/lib/openai";
+import { runLegacyTask } from "@/lib/ai/legacy-call";
 import { getSupabaseForUser } from "@/lib/supabase-admin";
 import { readJsonObject } from "@/lib/request-validation";
 
@@ -50,28 +51,25 @@ export async function POST(request: Request) {
       .order("created_at", { ascending: false })
       .limit(12);
 
-    const lang = locale === "es" ? "Spanish" : "English";
-
     const usageBlocked = await enforceAIUsage(user.id, token);
     if (usageBlocked) return usageBlocked;
 
-    const completion = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
-      messages: [
-        {
-          role: "system",
-          content: `${COACH_SYSTEM}\n\nRespond in ${lang}.\n\nUSER CONTEXT:\n${JSON.stringify(context, null, 2)}`,
-        },
-        ...((history ?? []).reverse().map((m) => ({
-          role: m.role as "user" | "assistant",
-          content: m.content as string,
-        }))),
-        { role: "user", content: message },
-      ],
-      temperature: 0.7,
+    const { text } = await runLegacyTask({
+      taskId: "ai-coach",
+      mode: "text",
+      system: COACH_SYSTEM,
+      instruction:
+        "Reply to the user's last message in user_input.message, continuing the conversation history and using the account data in app_context.",
+      input: { message },
+      context,
+      history: (history ?? []).reverse().map((m) => ({
+        role: m.role as "user" | "assistant",
+        content: m.content as string,
+      })),
+      locale,
     });
 
-    const reply = completion.choices[0]?.message?.content ?? "No pude generar respuesta.";
+    const reply = text || "No pude generar respuesta.";
 
     await sb.from("ai_coach_messages").insert([
       { user_id: user.id, role: "user", content: message },

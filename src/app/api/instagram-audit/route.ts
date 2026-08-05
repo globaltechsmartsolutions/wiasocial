@@ -2,7 +2,8 @@ import { NextResponse } from "next/server";
 import { enforceUserRateLimit, getAccessTokenFromRequest, getUserFromAccessToken } from "@/lib/auth-server";
 import { enforceAIUsage } from "@/lib/ai-usage-guard";
 import { scoreInstagramProfile } from "@/lib/audit-scoring";
-import { openai, isOpenAIConfigured } from "@/lib/openai";
+import { isOpenAIConfigured } from "@/lib/openai";
+import { runLegacyJsonTask } from "@/lib/ai/legacy-call";
 import { getSupabaseForUser } from "@/lib/supabase-admin";
 import type { AuditAIReport, AuditProfileInput } from "@/types/audit";
 import { readJsonObject } from "@/lib/request-validation";
@@ -30,26 +31,15 @@ async function generateAIReport(
 ): Promise<AuditAIReport | null> {
   if (!isOpenAIConfigured()) return null;
 
-  const lang = locale === "es" ? "Spanish" : "English";
-  const completion = await openai.chat.completions.create({
-    model: "gpt-4o-mini",
-    messages: [
-      {
-        role: "system",
-        content: `${AUDIT_SYSTEM_PROMPT}\n\nRespond in ${lang}.`,
-      },
-      {
-        role: "user",
-        content: JSON.stringify({ profile: input, scoring: scores }, null, 2),
-      },
-    ],
-    response_format: { type: "json_object" },
-    temperature: 0.5,
+  const result = await runLegacyJsonTask({
+    taskId: "instagram-audit",
+    system: AUDIT_SYSTEM_PROMPT,
+    instruction:
+      "Audit the Instagram profile described in user_input.profile. The deterministic scoring computed by the app is in user_input.scoring.",
+    input: { profile: input, scoring: scores },
+    locale,
   });
-
-  const content = completion.choices[0]?.message?.content;
-  if (!content) return null;
-  return JSON.parse(content) as AuditAIReport;
+  return result as AuditAIReport;
 }
 
 export async function POST(request: Request) {

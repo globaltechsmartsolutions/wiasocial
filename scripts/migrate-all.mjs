@@ -17,6 +17,7 @@ const files = [
   "supabase/phase-two-ai-usage-hardening-migration.sql",
   "supabase/phase-three-stripe-idempotency-migration.sql",
   "supabase/phase-four-security-cleanup-migration.sql",
+  "supabase/ai-core-migration.sql",
 ];
 
 const expectedTables = [
@@ -33,6 +34,8 @@ const expectedTables = [
   "follow_ups",
   "follower_snapshots",
   "generated_content",
+  "generation_runs",
+  "generation_steps",
   "growth_radar_reports",
   "instagram_audits",
   "instagram_connections",
@@ -48,6 +51,7 @@ const expectedTables = [
   "story_sets",
   "stripe_events",
   "trend_detector_cache",
+  "usage_events",
   "user_settings",
 ];
 

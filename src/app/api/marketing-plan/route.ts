@@ -2,7 +2,8 @@ import { NextResponse } from "next/server";
 import { enforceUserRateLimit, getAccessTokenFromRequest, getUserFromAccessToken } from "@/lib/auth-server";
 import { enforceAIUsage } from "@/lib/ai-usage-guard";
 import { buildUserAIContext } from "@/lib/ai-context";
-import { openai, isOpenAIConfigured } from "@/lib/openai";
+import { isOpenAIConfigured } from "@/lib/openai";
+import { runLegacyJsonTask } from "@/lib/ai/legacy-call";
 import { getSupabaseForUser } from "@/lib/supabase-admin";
 import type { MonthlyMarketingPlan } from "@/types/marketing-os";
 import { readJsonObject } from "@/lib/request-validation";
@@ -81,25 +82,21 @@ export async function POST(request: Request) {
   }
 
   const context = await buildUserAIContext(user.id, token);
-  const lang = locale === "es" ? "Spanish" : "English";
 
   const usageBlocked = await enforceAIUsage(user.id, token);
   if (usageBlocked) return usageBlocked;
 
-  const completion = await openai.chat.completions.create({
-    model: "gpt-4o-mini",
-    messages: [
-      { role: "system", content: `${PLAN_PROMPT}\n\nRespond in ${lang}.` },
-      { role: "user", content: JSON.stringify({ month, objective, context }) },
-    ],
-    response_format: { type: "json_object" },
-    temperature: 0.72,
+  const result = await runLegacyJsonTask({
+    taskId: "marketing-plan",
+    system: PLAN_PROMPT,
+    instruction:
+      "Build the monthly Instagram marketing plan for the month in user_input.month and the objective in user_input.objective, using the business data in app_context.",
+    input: { month, objective },
+    context,
+    locale,
   });
 
-  const content = completion.choices[0]?.message?.content;
-  if (!content) return NextResponse.json({ error: "No AI response" }, { status: 500 });
-
-  const plan = normalizePlan(JSON.parse(content) as Partial<MonthlyMarketingPlan>, month, String(objective));
+  const plan = normalizePlan(result as Partial<MonthlyMarketingPlan>, month, String(objective));
   let persistenceWarning: string | null = null;
 
   const { error: upsertError } = await sb.from("monthly_marketing_plans").upsert({

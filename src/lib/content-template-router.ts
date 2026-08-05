@@ -197,8 +197,8 @@ export function getTemplateRenderColors(templateId: CarouselTemplateId | string 
   };
 }
 
-export function buildTemplateRouterPromptContext(route: PremiumContentRoute) {
-  const templateList = CAROUSEL_TEMPLATE_DEFINITIONS
+export function buildTemplateCatalogText() {
+  return CAROUSEL_TEMPLATE_DEFINITIONS
     .map((template) => [
       `- ${template.id}: ${template.name}`,
       `  Intent: ${template.intent}`,
@@ -206,6 +206,10 @@ export function buildTemplateRouterPromptContext(route: PremiumContentRoute) {
       `  Slide pattern: ${template.slidePattern.join(" -> ")}`,
     ].join("\n"))
     .join("\n");
+}
+
+export function buildTemplateRouterPromptContext(route: PremiumContentRoute) {
+  const templateList = buildTemplateCatalogText();
 
   return `Template router recommendation:
 templateId: ${route.templateId}

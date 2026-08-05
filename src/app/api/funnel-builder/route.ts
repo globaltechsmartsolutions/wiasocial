@@ -2,7 +2,8 @@ import { NextResponse } from "next/server";
 import { enforceUserRateLimit, getAccessTokenFromRequest, getUserFromAccessToken } from "@/lib/auth-server";
 import { enforceAIUsage } from "@/lib/ai-usage-guard";
 import { buildUserAIContext } from "@/lib/ai-context";
-import { openai, isOpenAIConfigured } from "@/lib/openai";
+import { isOpenAIConfigured } from "@/lib/openai";
+import { runLegacyJsonTask } from "@/lib/ai/legacy-call";
 import { getSupabaseForUser } from "@/lib/supabase-admin";
 import type { InstagramFunnelPlan } from "@/types/marketing-os";
 import { readJsonObject } from "@/lib/request-validation";
@@ -79,25 +80,21 @@ export async function POST(request: Request) {
   } = body as { locale?: string; offer?: string; targetAudience?: string; funnelGoal?: string };
 
   const context = await buildUserAIContext(user.id, token);
-  const lang = locale === "es" ? "Spanish" : "English";
 
   const usageBlocked = await enforceAIUsage(user.id, token);
   if (usageBlocked) return usageBlocked;
 
-  const completion = await openai.chat.completions.create({
-    model: "gpt-4o-mini",
-    messages: [
-      { role: "system", content: `${FUNNEL_PROMPT}\n\nRespond in ${lang}.` },
-      { role: "user", content: JSON.stringify({ offer, targetAudience, funnelGoal, context }) },
-    ],
-    response_format: { type: "json_object" },
-    temperature: 0.72,
+  const result = await runLegacyJsonTask({
+    taskId: "funnel-builder",
+    system: FUNNEL_PROMPT,
+    instruction:
+      "Build the Instagram funnel for the request in user_input (fields: offer, targetAudience, funnelGoal), using the business data in app_context.",
+    input: { offer, targetAudience, funnelGoal },
+    context,
+    locale,
   });
 
-  const content = completion.choices[0]?.message?.content;
-  if (!content) return NextResponse.json({ error: "No AI response" }, { status: 500 });
-
-  const funnel = normalizeFunnel(JSON.parse(content) as Partial<InstagramFunnelPlan>, offer, targetAudience, funnelGoal);
+  const funnel = normalizeFunnel(result as Partial<InstagramFunnelPlan>, offer, targetAudience, funnelGoal);
   const { data, error } = await getSupabaseForUser(token)
     .from("instagram_funnels")
     .insert({

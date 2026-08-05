@@ -2,7 +2,8 @@ import { NextResponse } from "next/server";
 import { enforceUserRateLimit, getAccessTokenFromRequest, getUserFromAccessToken } from "@/lib/auth-server";
 import { enforceAIUsage } from "@/lib/ai-usage-guard";
 import { buildUserAIContext } from "@/lib/ai-context";
-import { openai, isOpenAIConfigured } from "@/lib/openai";
+import { isOpenAIConfigured } from "@/lib/openai";
+import { runLegacyJsonTask } from "@/lib/ai/legacy-call";
 import { getSupabaseForUser } from "@/lib/supabase-admin";
 import { readJsonObject } from "@/lib/request-validation";
 
@@ -72,27 +73,20 @@ export async function POST(request: Request) {
   const ctx = await buildUserAIContext(user.id, token);
   const now = new Date();
   const monthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
-  const langInstruction = locale === "es" ? "Respond entirely in Spanish." : "Respond entirely in English.";
   const monthLabel = now.toLocaleString(locale === "es" ? "es-ES" : "en-US", { month: "long", year: "numeric" });
 
   const usageBlocked = await enforceAIUsage(user.id, token);
   if (usageBlocked) return usageBlocked;
 
-  const completion = await openai!.chat.completions.create({
-    model: "gpt-4o-mini",
-    messages: [
-      { role: "system", content: `${REPORT_SYSTEM_PROMPT}\n\n${langInstruction}` },
-      {
-        role: "user",
-        content: `User context:\n${JSON.stringify(ctx, null, 2)}\n\nGenerate a monthly report for ${monthLabel}. Use the available data to create a comprehensive performance summary.`,
-      },
-    ],
-    response_format: { type: "json_object" },
-    temperature: 0.4,
+  const report = await runLegacyJsonTask({
+    taskId: "monthly-report",
+    system: REPORT_SYSTEM_PROMPT,
+    instruction:
+      "Generate the monthly report for the month named in user_input.monthLabel. Use the available data in app_context to create a comprehensive performance summary.",
+    input: { monthLabel },
+    context: ctx,
+    locale,
   });
-
-  const raw = completion.choices[0]?.message?.content ?? "{}";
-  const report = JSON.parse(raw);
 
   const sb = getSupabaseForUser(token);
   await sb.from("monthly_reports").upsert(

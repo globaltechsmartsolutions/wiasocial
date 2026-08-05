@@ -2,23 +2,29 @@ import { NextResponse } from "next/server";
 import { enforceUserRateLimit, getAccessTokenFromRequest, getUserFromAccessToken } from "@/lib/auth-server";
 import { enforceAIUsage } from "@/lib/ai-usage-guard";
 import { buildUserAIContext } from "@/lib/ai-context";
-import { openai, isOpenAIConfigured } from "@/lib/openai";
+import { isOpenAIConfigured } from "@/lib/openai";
+import { runLegacyJsonTask } from "@/lib/ai/legacy-call";
 import { getSupabaseForUser } from "@/lib/supabase-admin";
 import { readJsonObject } from "@/lib/request-validation";
 
-const TREND_SYSTEM_PROMPT = `You are a senior social media trend analyst specialized in Instagram and short-form content. Analyze the user's niche and settings, and return the top 5 trending topics or content opportunities they should act on THIS WEEK.
+const TREND_SYSTEM_PROMPT = `You are a senior social media content strategist specialized in Instagram and short-form content. Analyze the user's niche and settings, and return the top 5 content opportunities they should act on this week.
+
+IMPORTANT — you have NO access to live trend data, social listening or real-time sources:
+- Never claim that a topic "is trending right now" or cite current metrics you cannot verify.
+- Base every opportunity on durable niche patterns, seasonality and the user's own data in app_context, and present it as a strategic hypothesis, not as a measured trend.
+- In "whyTrending", explain the strategic reasoning (audience pain, seasonality, recurring formats), clearly framed as an estimate.
+- Never invent recent events, statistics or figures.
 
 Rules:
-- Base your analysis on current content marketing trends, the user's niche, and their audience profile
-- Prioritize topics that are genuinely trending, not generic
-- Each trend must have a specific content angle and hook suggestion
-- Never recommend bots, fake engagement, or unethical practices
+- Prioritize opportunities that are specific to the niche, not generic.
+- Each opportunity must have a specific content angle and hook suggestion.
+- Never recommend bots, fake engagement, or unethical practices.
 - Return JSON only with this exact shape:
 {
   "trends": [
     {
       "topic": string,
-      "whyTrending": string,
+      "whyTrending": string (strategic rationale labeled as an estimate, not a live-data claim),
       "urgency": "high" | "medium" | "low",
       "contentIdea": string,
       "hookSuggestion": string,
@@ -27,7 +33,7 @@ Rules:
       "audienceInsight": string
     }
   ],
-  "overallInsight": string,
+  "overallInsight": string (must mention that these are strategic opportunities based on niche patterns, not live trend measurements),
   "weeklyFocus": string
 }`;
 
@@ -63,26 +69,18 @@ export async function POST(request: Request) {
   const locale = parsed.data.locale ?? "es";
 
   const ctx = await buildUserAIContext(user.id, token);
-  const langInstruction = locale === "es" ? "Respond entirely in Spanish." : "Respond entirely in English.";
 
   const usageBlocked = await enforceAIUsage(user.id, token);
   if (usageBlocked) return usageBlocked;
 
-  const completion = await openai!.chat.completions.create({
-    model: "gpt-4o-mini",
-    messages: [
-      { role: "system", content: `${TREND_SYSTEM_PROMPT}\n\n${langInstruction}` },
-      {
-        role: "user",
-        content: `User context:\n${JSON.stringify(ctx, null, 2)}\n\nAnalyze trending content opportunities for this user's niche this week.`,
-      },
-    ],
-    response_format: { type: "json_object" },
-    temperature: 0.8,
+  const result = await runLegacyJsonTask({
+    taskId: "trend-detector",
+    system: TREND_SYSTEM_PROMPT,
+    instruction:
+      "Identify this week's strategic content opportunities for the user's niche using only the data in app_context. Remember: no live trend data, label everything as strategic estimates.",
+    context: ctx,
+    locale,
   });
-
-  const raw = completion.choices[0]?.message?.content ?? "{}";
-  const result = JSON.parse(raw);
 
   const sb = getSupabaseForUser(token);
   await sb.from("trend_detector_cache").upsert(

@@ -2,7 +2,8 @@ import { NextResponse } from "next/server";
 import { enforceUserRateLimit, getAccessTokenFromRequest, getUserFromAccessToken } from "@/lib/auth-server";
 import { enforceAIUsage } from "@/lib/ai-usage-guard";
 import { buildUserAIContext } from "@/lib/ai-context";
-import { openai, isOpenAIConfigured } from "@/lib/openai";
+import { isOpenAIConfigured } from "@/lib/openai";
+import { runLegacyJsonTask } from "@/lib/ai/legacy-call";
 import { getSupabaseForUser } from "@/lib/supabase-admin";
 import type { GrowthRadarReport } from "@/types/growth-radar";
 import { readJsonObject } from "@/lib/request-validation";
@@ -101,32 +102,21 @@ export async function POST(request: Request) {
   }
 
   const context = await buildUserAIContext(user.id, token);
-  const lang = locale === "es" ? "Spanish" : "English";
-
-  const manualOverride = manualMetrics
-    ? `\n\nManual metrics provided by user (use these when Instagram data is unavailable): followers=${manualMetrics.followers ?? "unknown"}, weeklyFollowerGain=${manualMetrics.weeklyGain ?? "unknown"}, engagementRate=${manualMetrics.engagementRate !== undefined ? `${manualMetrics.engagementRate}%` : "unknown"}`
-    : "";
 
   const usageBlocked = await enforceAIUsage(user.id, token);
   if (usageBlocked) return usageBlocked;
 
-  const completion = await openai.chat.completions.create({
-    model: "gpt-4o-mini",
-    messages: [
-      {
-        role: "system",
-        content: `${RADAR_SYSTEM_PROMPT}${manualOverride}\n\nRespond in ${lang}.`,
-      },
-      { role: "user", content: JSON.stringify({ reportWeek, context }) },
-    ],
-    response_format: { type: "json_object" },
-    temperature: 0.7,
+  const result = await runLegacyJsonTask({
+    taskId: "growth-radar",
+    system: RADAR_SYSTEM_PROMPT,
+    instruction:
+      "Generate this week's growth radar report. The week start date is in user_input.reportWeek. If user_input.manualMetrics is present, use those values when Instagram data is unavailable. The account data is in app_context.",
+    input: { reportWeek, manualMetrics },
+    context,
+    locale,
   });
 
-  const content = completion.choices[0]?.message?.content;
-  if (!content) return NextResponse.json({ error: "No AI response" }, { status: 500 });
-
-  const report = normalizeReport(JSON.parse(content) as Partial<GrowthRadarReport>);
+  const report = normalizeReport(result as Partial<GrowthRadarReport>);
   let persistenceWarning: string | null = null;
 
   const { error: upsertError } = await sb.from("growth_radar_reports").upsert({

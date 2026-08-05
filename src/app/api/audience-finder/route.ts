@@ -2,7 +2,8 @@ import { NextResponse } from "next/server";
 import { enforceUserRateLimit, getAccessTokenFromRequest, getUserFromAccessToken } from "@/lib/auth-server";
 import { enforceAIUsage } from "@/lib/ai-usage-guard";
 import { buildUserAIContext } from "@/lib/ai-context";
-import { openai, isOpenAIConfigured } from "@/lib/openai";
+import { isOpenAIConfigured } from "@/lib/openai";
+import { runLegacyJsonTask } from "@/lib/ai/legacy-call";
 import { getSupabaseForUser } from "@/lib/supabase-admin";
 import { readJsonObject } from "@/lib/request-validation";
 import type {
@@ -117,25 +118,21 @@ export async function POST(request: Request) {
   };
 
   const context = await buildUserAIContext(user.id, token);
-  const lang = locale === "es" ? "Spanish" : "English";
 
   const usageBlocked = await enforceAIUsage(user.id, token);
   if (usageBlocked) return usageBlocked;
 
-  const completion = await openai.chat.completions.create({
-    model: "gpt-4o-mini",
-    messages: [
-      { role: "system", content: `${AUDIENCE_FINDER_PROMPT}\n\nRespond in ${lang}.` },
-      { role: "user", content: JSON.stringify({ input, context }) },
-    ],
-    response_format: { type: "json_object" },
-    temperature: 0.68,
+  const result = await runLegacyJsonTask({
+    taskId: "audience-finder",
+    system: AUDIENCE_FINDER_PROMPT,
+    instruction:
+      "Build the potential-followers radar for the request in user_input (fields: niche, goal, similarAccounts, keywords, observedUsers, notes), using the account data in app_context.",
+    input,
+    context,
+    locale,
   });
 
-  const content = completion.choices[0]?.message?.content;
-  if (!content) return NextResponse.json({ error: "No AI response" }, { status: 500 });
-
-  const report = normalizeReport(JSON.parse(content) as Partial<AudienceFinderReport>, input.niche);
+  const report = normalizeReport(result as Partial<AudienceFinderReport>, input.niche);
   let persistenceWarning: string | null = null;
   const sb = getSupabaseForUser(token);
 
