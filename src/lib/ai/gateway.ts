@@ -22,6 +22,7 @@ export type AIErrorCode =
   | "not_configured"
   | "auth"
   | "rate_limit"
+  | "insufficient_credit"
   | "timeout"
   | "invalid_output"
   | "provider_error";
@@ -114,6 +115,24 @@ interface GatewayDependencies {
 
 const defaultSleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
 
+/**
+ * Distingue "sin saldo" de un límite de peticiones real. El SDK expone el
+ * cuerpo del error en `code`/`type`, y el mensaje sirve de última red por si
+ * el proveedor cambia esos campos.
+ */
+function isCreditExhausted(err: unknown): boolean {
+  if (!err || typeof err !== "object") return false;
+  const candidate = err as { code?: unknown; type?: unknown; message?: unknown };
+  const markers = [candidate.code, candidate.type]
+    .filter((value): value is string => typeof value === "string")
+    .map((value) => value.toLowerCase());
+
+  if (markers.includes("insufficient_quota") || markers.includes("credit_balance_exhausted")) {
+    return true;
+  }
+  return typeof candidate.message === "string" && /no credits remaining|insufficient_quota/iu.test(candidate.message);
+}
+
 function normalizeError(err: unknown): AIGatewayError {
   if (err instanceof AIGatewayError) return err;
 
@@ -134,6 +153,16 @@ function normalizeError(err: unknown): AIGatewayError {
     });
   }
   if (status === 429) {
+    // OpenAI devuelve 429 tanto para "vas demasiado rápido" como para "no
+    // queda saldo". Reintentar lo segundo nunca puede funcionar y además
+    // oculta la causa real al usuario.
+    if (isCreditExhausted(err)) {
+      return new AIGatewayError(
+        "insufficient_credit",
+        "La cuenta del proveedor de IA se ha quedado sin saldo",
+        { status, retryable: false }
+      );
+    }
     return new AIGatewayError("rate_limit", "Límite de peticiones del proveedor alcanzado", {
       status,
       retryable: true,

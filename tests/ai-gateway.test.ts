@@ -100,6 +100,26 @@ describe("ModelGateway (adaptador OpenAI)", () => {
     expect(calls).toHaveLength(1);
   });
 
+  it("distingue la falta de saldo de un límite de peticiones y no reintenta", async () => {
+    // OpenAI devuelve 429 en ambos casos; reintentar sin saldo nunca funciona.
+    const noCredit = Object.assign(new FakeProviderError("You have no credits remaining.", 429), {
+      code: "credit_balance_exhausted",
+      type: "insufficient_quota",
+    });
+    const { client, calls } = fakeClient([
+      () => {
+        throw noCredit;
+      },
+    ]);
+    const error = await gatewayWith(client)
+      .generate({ ...baseRequest, maxAttempts: 3 })
+      .catch((err) => err);
+
+    expect((error as AIGatewayError).code).toBe("insufficient_credit");
+    expect((error as AIGatewayError).retryable).toBe(false);
+    expect(calls).toHaveLength(1);
+  });
+
   it("reintenta límites de peticiones del proveedor hasta maxAttempts", async () => {
     const { client, calls } = fakeClient([
       () => {

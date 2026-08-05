@@ -392,6 +392,11 @@ function errorResponse(err: unknown): NextResponse {
         { status: 503 }
       );
     }
+    if (err.code === "insufficient_credit") {
+      // Es un problema de la cuenta del operador, no del usuario final.
+      console.error("[ai-gateway] sin saldo en el proveedor de IA");
+      return NextResponse.json({ error: "AI_PROVIDER_CREDIT_EXHAUSTED" }, { status: 503 });
+    }
     const status = err.code === "timeout" ? 504 : err.code === "rate_limit" ? 503 : 502;
     return NextResponse.json({ error: err.message }, { status });
   }
