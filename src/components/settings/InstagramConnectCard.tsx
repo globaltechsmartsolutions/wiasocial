@@ -68,7 +68,7 @@ export function InstagramConnectCard() {
     try {
       await connectInstagram();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Error al conectar");
+      setError(e instanceof Error ? e.message : "Connection error");
     } finally {
       setConnecting(false);
     }

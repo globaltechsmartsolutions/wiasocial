@@ -116,7 +116,7 @@ export default function AnalyticsPage() {
       <Card className="mt-8">
         <CardHeader title={t.analytics.performance} description={t.analytics.performanceDesc} action={<BarChart3 className="h-5 w-5 text-lime" />} />
         {posts.length === 0 ? (
-          <p className="text-sm text-muted py-8 text-center">Registra tu primera publicación con métricas reales de Instagram Insights</p>
+          <p className="text-sm text-muted py-8 text-center">Add your first post using real metrics from Instagram Insights</p>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full">

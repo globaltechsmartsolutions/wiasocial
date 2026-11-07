@@ -22,7 +22,7 @@ export default function AppError({
       </div>
       <h2 className="text-xl font-black text-foreground">Error inesperado</h2>
       <p className="mt-2 max-w-sm text-sm text-muted">
-        No se pudo cargar esta sección. Por favor, inténtalo de nuevo.
+        This section could not be loaded. Please try again.
       </p>
       {error.digest && (
         <p className="mt-1 font-mono text-xs text-muted">ID: {error.digest}</p>

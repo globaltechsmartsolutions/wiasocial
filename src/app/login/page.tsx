@@ -3,7 +3,7 @@ import LoginForm from "./LoginForm";
 
 export default function LoginPage() {
   return (
-    <Suspense fallback={<div className="flex h-screen items-center justify-center bg-background">Cargando...</div>}>
+    <Suspense fallback={<div className="flex h-screen items-center justify-center bg-background">Loading...</div>}>
       <LoginForm />
     </Suspense>
   );

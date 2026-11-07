@@ -112,7 +112,7 @@ export function Header({ onMenuClick }: HeaderProps) {
         <NotificationBell />
         <button
           onClick={handleSignOut}
-          title="Cerrar sesión"
+          title="Sign out"
           className="rounded-lg p-2 text-muted hover:bg-surface-elevated hover:text-foreground"
         >
           <LogOut className="h-5 w-5" />

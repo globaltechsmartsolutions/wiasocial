@@ -110,7 +110,7 @@ function SectionNav({
                   expanded && "rotate-180"
                 )}
               />
-              <span>{expanded ? "Ver menos" : "Ver más"}</span>
+              <span>{expanded ? "Show less" : "Show more"}</span>
             </button>
             {expanded && (
               <div className="space-y-0.5">

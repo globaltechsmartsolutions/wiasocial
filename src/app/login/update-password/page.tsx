@@ -18,11 +18,11 @@ export default function UpdatePasswordPage() {
     e.preventDefault();
     setError("");
     if (password !== confirm) {
-      setError("Las contraseñas no coinciden.");
+      setError("Passwords do not match.");
       return;
     }
     if (password.length < 8) {
-      setError("La contraseña debe tener al menos 8 caracteres.");
+      setError("Your password must be at least 8 characters long.");
       return;
     }
     setSubmitting(true);
@@ -42,13 +42,13 @@ export default function UpdatePasswordPage() {
           <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-xl gradient-lime">
             <Zap className="h-7 w-7 text-black" />
           </div>
-          <h1 className="text-2xl font-bold">Nueva contraseña</h1>
-          <p className="mt-2 text-sm text-muted">Elige una contraseña segura para tu cuenta.</p>
+          <h1 className="text-2xl font-bold">Create a new password</h1>
+          <p className="mt-2 text-sm text-muted">Choose a secure password for your account.</p>
         </div>
         <form onSubmit={handleSubmit} className="rounded-xl border border-border bg-surface p-6 space-y-4">
           <Input
             id="password"
-            label="Nueva contraseña"
+            label="New password"
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
@@ -57,7 +57,7 @@ export default function UpdatePasswordPage() {
           />
           <Input
             id="confirm"
-            label="Confirmar contraseña"
+            label="Confirm password"
             type="password"
             value={confirm}
             onChange={(e) => setConfirm(e.target.value)}
@@ -67,7 +67,7 @@ export default function UpdatePasswordPage() {
           {error && <p className="text-sm text-red-400">{error}</p>}
           <Button type="submit" disabled={submitting} className="w-full">
             {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
-            Actualizar contraseña
+            Update password
           </Button>
         </form>
       </div>

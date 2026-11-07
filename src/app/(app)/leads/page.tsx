@@ -92,7 +92,7 @@ export default function LeadsPage() {
         body: JSON.stringify({ event: "new_lead", payload: { id: lead.id, username: lead.username, niche: lead.niche, source: lead.source } }),
       }).catch(() => {});
     } catch (e) {
-      setSaveError(e instanceof Error ? e.message : "Error al guardar el lead");
+      setSaveError(e instanceof Error ? e.message : "Unable to save the lead");
     }
   };
 

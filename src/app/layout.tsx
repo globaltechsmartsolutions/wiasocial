@@ -9,26 +9,26 @@ const inter = Inter({
 
 export const metadata: Metadata = {
   title: {
-    default: "WIA Social — Instagram Growth OS con IA",
+    default: "WIA Social — AI-Powered Instagram Growth OS",
     template: "%s — WIA Social",
   },
   description:
-    "La plataforma todo-en-uno para creadores y agencias que quieren crecer en Instagram. Generación de contenido IA, CRM de leads, análisis de métricas y estrategias personalizadas.",
+    "The all-in-one platform for creators and agencies that want to grow on Instagram with AI content, lead management, analytics, and personalized strategies.",
   metadataBase: new URL("https://wiasocial-production.up.railway.app"),
   openGraph: {
-    title: "WIA Social — Instagram Growth OS con IA",
+    title: "WIA Social — AI-Powered Instagram Growth OS",
     description:
-      "La plataforma todo-en-uno para creadores y agencias que quieren crecer en Instagram.",
+      "The all-in-one platform for creators and agencies that want to grow on Instagram.",
     url: "https://wiasocial-production.up.railway.app",
     siteName: "WIA Social",
-    locale: "es_ES",
+    locale: "en_US",
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: "WIA Social — Instagram Growth OS con IA",
+    title: "WIA Social — AI-Powered Instagram Growth OS",
     description:
-      "La plataforma todo-en-uno para creadores y agencias que quieren crecer en Instagram.",
+      "The all-in-one platform for creators and agencies that want to grow on Instagram.",
   },
   robots: {
     index: true,
@@ -42,7 +42,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="es" className="dark" suppressHydrationWarning>
+    <html lang="en" className="dark" suppressHydrationWarning>
       <body className={`${inter.variable} font-sans`}>{children}</body>
     </html>
   );

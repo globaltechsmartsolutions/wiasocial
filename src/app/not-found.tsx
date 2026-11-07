@@ -24,21 +24,21 @@ export default function NotFound() {
         </p>
       </div>
 
-      <h1 className="text-2xl font-bold text-foreground">Página no encontrada</h1>
+      <h1 className="text-2xl font-bold text-foreground">Page not found</h1>
       <p className="mt-3 max-w-sm text-sm text-muted">
-        Esta ruta no existe. Es posible que haya cambiado o que hayas escrito la URL incorrectamente.
+        This route does not exist. It may have changed, or the URL may have been entered incorrectly.
       </p>
 
       <div className="mt-8 flex gap-3">
         <Link href="/dashboard">
           <Button>
             <Home className="h-4 w-4" />
-            Ir al Dashboard
+            Go to Dashboard
           </Button>
         </Link>
         <Button variant="ghost" onClick={() => window.history.back()}>
           <ArrowLeft className="h-4 w-4" />
-          Volver
+          Go back
         </Button>
       </div>
     </div>

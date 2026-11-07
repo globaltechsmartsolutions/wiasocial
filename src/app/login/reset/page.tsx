@@ -36,21 +36,21 @@ export default function ResetPasswordPage() {
           <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-xl gradient-lime">
             <Zap className="h-7 w-7 text-black" />
           </div>
-          <h1 className="text-2xl font-bold">Recuperar contraseña</h1>
+          <h1 className="text-2xl font-bold">Reset your password</h1>
           <p className="mt-2 text-sm text-muted">
-            Introduce tu email y te enviaremos un enlace para restablecer tu contraseña.
+            Enter your email and we will send you a password reset link.
           </p>
         </div>
 
         {success ? (
           <div className="rounded-xl border border-lime/30 bg-lime/5 p-6 text-center">
-            <p className="font-semibold text-lime">Email enviado</p>
+            <p className="font-semibold text-lime">Email sent</p>
             <p className="mt-2 text-sm text-muted">
-              Revisa tu bandeja de entrada y sigue las instrucciones del email.
+              Check your inbox and follow the instructions in the email.
             </p>
             <Link href="/login" className="mt-4 inline-flex items-center gap-2 text-sm text-lime hover:underline">
               <ArrowLeft className="h-4 w-4" />
-              Volver al inicio de sesión
+              Back to sign in
             </Link>
           </div>
         ) : (
@@ -66,14 +66,14 @@ export default function ResetPasswordPage() {
             {error && <p className="text-sm text-red-400">{error}</p>}
             <Button type="submit" disabled={submitting} className="w-full">
               {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
-              Enviar enlace de recuperación
+              Send reset link
             </Button>
             <Link
               href="/login"
               className="flex items-center justify-center gap-1 text-sm text-muted hover:text-lime"
             >
               <ArrowLeft className="h-3.5 w-3.5" />
-              Volver al inicio de sesión
+              Back to sign in
             </Link>
           </form>
         )}

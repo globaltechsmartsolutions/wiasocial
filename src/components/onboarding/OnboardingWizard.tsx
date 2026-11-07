@@ -9,33 +9,33 @@ const STEPS = [
   {
     id: "welcome",
     icon: Zap,
-    title: "Bienvenido a WIA Social",
-    desc: "Tu OS de crecimiento en Instagram. En 3 pasos tendrás todo listo para que la IA trabaje para ti.",
-    cta: "Empezar →",
+    title: "Welcome to WIA Social",
+    desc: "Your Instagram growth OS. Get everything ready in three steps so AI can work for your brand.",
+    cta: "Get started →",
     href: null,
   },
   {
     id: "brand",
     icon: Sparkles,
-    title: "Define tu marca",
-    desc: "Configura tu nicho, audiencia y oferta para que la IA genere contenido personalizado, no genérico.",
-    cta: "Configurar perfil",
+    title: "Define your brand",
+    desc: "Set your niche, audience, and offer so the AI creates personalized content instead of generic copy.",
+    cta: "Configure profile",
     href: "/settings",
   },
   {
     id: "instagram",
     icon: Instagram,
-    title: "Conecta Instagram",
-    desc: "Importa tus métricas reales para que WIA analice tu cuenta y te dé estrategias basadas en datos.",
-    cta: "Conectar Instagram",
+    title: "Connect Instagram",
+    desc: "Import real performance data so WIA can analyze your account and provide data-driven strategies.",
+    cta: "Connect Instagram",
     href: "/instagram-data",
   },
   {
     id: "generate",
     icon: Sparkles,
-    title: "Genera tu primer contenido",
-    desc: "Prueba el Generador IA. Crea ganchos, guiones y captions virales en segundos.",
-    cta: "Generar contenido",
+    title: "Create your first content",
+    desc: "Try the AI generator and create hooks, scripts, and captions tailored to your strategy.",
+    cta: "Create content",
     href: "/content-generator",
   },
 ];
@@ -118,7 +118,7 @@ export function OnboardingWizard() {
             </Button>
             {step > 0 && (
               <Button variant="ghost" className="w-full text-muted text-sm" onClick={handleDismiss}>
-                Saltar configuración
+                Skip setup
               </Button>
             )}
           </div>

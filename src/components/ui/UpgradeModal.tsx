@@ -36,7 +36,7 @@ export function UpgradeModal({ used, limit, onClose }: UpgradeModalProps) {
       if (data.url) {
         window.location.href = data.url;
       } else {
-        alert(data.error || "Error al crear sesión de pago");
+        alert(data.error || "Unable to create the checkout session");
       }
     } finally {
       setLoading(null);

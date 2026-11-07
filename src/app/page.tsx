@@ -3,56 +3,56 @@ import { Zap, Instagram, Sparkles, TrendingUp, Users, BarChart3, CheckCircle2, A
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "WIA Social — Instagram Growth OS con IA",
+  title: "WIA Social — AI-Powered Instagram Growth OS",
   description:
-    "La plataforma todo-en-uno para creadores y agencias que quieren crecer en Instagram de forma real y sostenible. Generación de contenido IA, CRM de leads, análisis de métricas y más.",
+    "The all-in-one platform for creators and agencies that want sustainable Instagram growth through AI content, lead management, and actionable analytics.",
   openGraph: {
-    title: "WIA Social — Instagram Growth OS con IA",
+    title: "WIA Social — AI-Powered Instagram Growth OS",
     description:
-      "La plataforma todo-en-uno para creadores y agencias que quieren crecer en Instagram. Generación de contenido IA, CRM de leads, análisis de métricas.",
+      "The all-in-one platform for creators and agencies that want to grow on Instagram with AI content, lead management, and analytics.",
     url: "https://wiasocial-production.up.railway.app",
     siteName: "WIA Social",
-    locale: "es_ES",
+    locale: "en_US",
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: "WIA Social — Instagram Growth OS con IA",
+    title: "WIA Social — AI-Powered Instagram Growth OS",
     description:
-      "La plataforma todo-en-uno para creadores y agencias que quieren crecer en Instagram.",
+      "The all-in-one platform for creators and agencies that want to grow on Instagram.",
   },
 };
 
 const FEATURES = [
   {
     icon: Sparkles,
-    title: "Generador de contenido IA",
-    desc: "Ganchos virales, guiones de Reels, captions, carruseles y stories generados por IA en segundos.",
+    title: "AI content generator",
+    desc: "Create hooks, Reel scripts, captions, carousels, and Stories tailored to your brand in seconds.",
   },
   {
     icon: TrendingUp,
-    title: "Radar de crecimiento semanal",
-    desc: "Análisis automático de tu cuenta con estrategias de crecimiento personalizadas basadas en tus métricas reales.",
+    title: "Weekly growth radar",
+    desc: "Analyze your account and receive personalized growth strategies based on your real performance data.",
   },
   {
     icon: Users,
-    title: "CRM de leads integrado",
-    desc: "Gestiona prospectos, clientes y seguimientos desde un solo lugar. Nunca pierdas una oportunidad.",
+    title: "Built-in lead CRM",
+    desc: "Manage prospects, clients, and follow-ups in one place so no opportunity falls through the cracks.",
   },
   {
     icon: BarChart3,
-    title: "Análisis y métricas",
-    desc: "Conecta tu Instagram y obtén insights accionables sobre engagement, mejores horarios y tendencias.",
+    title: "Analytics and insights",
+    desc: "Connect Instagram and turn engagement, publishing times, and performance signals into clear actions.",
   },
   {
     icon: Instagram,
-    title: "Auditoría de perfil",
-    desc: "Análisis completo de tu perfil con recomendaciones concretas para aumentar tu alcance y conversión.",
+    title: "Profile audit",
+    desc: "Review your profile and get practical recommendations to improve reach, positioning, and conversion.",
   },
   {
     icon: Zap,
-    title: "AI Coach personalizado",
-    desc: "Tu asistente IA disponible 24/7 para responder preguntas, idear estrategias y acelerar tu crecimiento.",
+    title: "Personalized AI Coach",
+    desc: "Get on-demand strategic guidance, campaign ideas, and clear next steps for growing your business.",
   },
 ];
 
@@ -61,44 +61,44 @@ const PLANS = [
     name: "Free",
     price: "0€",
     period: "",
-    desc: "Para empezar",
-    features: ["5 generaciones IA / mes", "Generador de contenido", "Guiones de Reels", "Hashtags", "CRM básico"],
-    cta: "Empezar gratis",
+    desc: "For getting started",
+    features: ["5 AI generations per month", "Content generator", "Reel scripts", "Hashtag ideas", "Basic CRM"],
+    cta: "Start for free",
     href: "/login",
     highlight: false,
   },
   {
     name: "Starter",
     price: "29€",
-    period: "/mes",
-    desc: "Para creadores serios",
-    badge: "Más popular",
+    period: "/month",
+    desc: "For serious creators",
+    badge: "Most popular",
     features: [
-      "IA ilimitada",
-      "Radar de crecimiento semanal",
-      "Detector de tendencias",
-      "Informes mensuales automáticos",
-      "Mejores horarios de publicación",
-      "Soporte prioritario",
+      "Unlimited AI generations",
+      "Weekly growth radar",
+      "Content opportunity detector",
+      "Automated monthly reports",
+      "Best publishing times",
+      "Priority support",
     ],
-    cta: "Comenzar ahora",
+    cta: "Get started",
     href: "/login",
     highlight: true,
   },
   {
     name: "Agency",
     price: "79€",
-    period: "/mes",
-    desc: "Para agencias y equipos",
+    period: "/month",
+    desc: "For agencies and teams",
     features: [
-      "Todo lo de Starter",
-      "CRM multi-cliente ilimitado",
-      "Webhooks personalizados",
-      "Acceso anticipado a nuevas funciones",
-      "Soporte dedicado",
-      "Facturación personalizada",
+      "Everything in Starter",
+      "Unlimited multi-client CRM",
+      "Custom webhooks",
+      "Early access to new features",
+      "Dedicated support",
+      "Custom billing",
     ],
-    cta: "Contactar",
+    cta: "Contact us",
     href: "/login",
     highlight: false,
   },
@@ -108,19 +108,19 @@ const TESTIMONIALS = [
   {
     name: "María García",
     handle: "@mariafit.ig",
-    text: "Pasé de 2k a 18k seguidores en 4 meses usando WIA. Los guiones de Reels son una pasada.",
+    text: "I went from 2K to 18K followers in four months using WIA. The Reel scripts have been a game changer.",
     stars: 5,
   },
   {
     name: "Carlos Ruiz",
     handle: "@carlosdigital",
-    text: "Como agencia, WIA nos ha ahorrado horas de trabajo. El CRM y los reportes automáticos son top.",
+    text: "As an agency, WIA saves us hours of work. The CRM and automated reports keep everything organized.",
     stars: 5,
   },
   {
     name: "Laura Sánchez",
     handle: "@lauracoach",
-    text: "Por fin una herramienta que entiende Instagram de verdad. El radar semanal es brutal.",
+    text: "Finally, a tool that understands Instagram strategy. The weekly growth radar is incredibly useful.",
     stars: 5,
   },
 ];
@@ -139,19 +139,19 @@ export default function LandingPage() {
           </div>
           <div className="flex items-center gap-3">
             <Link href="#pricing" className="hidden text-sm text-muted hover:text-foreground sm:block">
-              Precios
+              Pricing
             </Link>
             <Link
               href="/login"
               className="rounded-lg border border-border bg-surface px-4 py-2 text-sm font-medium text-foreground hover:bg-surface-elevated transition-colors"
             >
-              Iniciar sesión
+              Sign in
             </Link>
             <Link
               href="/login"
               className="rounded-lg gradient-lime px-4 py-2 text-sm font-bold text-black hover:opacity-90 transition-opacity"
             >
-              Empezar gratis
+              Start for free
             </Link>
           </div>
         </div>
@@ -164,37 +164,37 @@ export default function LandingPage() {
           <span className="text-xs font-medium text-lime">Powered by GPT-4o</span>
         </div>
         <h1 className="mx-auto max-w-3xl text-4xl font-black leading-tight tracking-tight sm:text-6xl">
-          Crece en Instagram con{" "}
-          <span className="text-gradient-lime">inteligencia artificial</span>
+          Grow on Instagram with{" "}
+          <span className="text-gradient-lime">artificial intelligence</span>
         </h1>
         <p className="mx-auto mt-6 max-w-2xl text-lg text-muted leading-relaxed">
-          WIA Social es el sistema operativo para creadores y agencias que quieren
-          resultados reales en Instagram. Contenido IA, métricas reales, CRM de leads
-          y estrategias personalizadas en una sola plataforma.
+          WIA Social is the growth operating system for creators and agencies that want
+          measurable Instagram results. AI content, real analytics, lead management,
+          and personalized strategies come together in one platform.
         </p>
         <div className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">
           <Link
             href="/login"
             className="flex items-center gap-2 rounded-xl gradient-lime px-8 py-4 text-base font-bold text-black hover:opacity-90 transition-opacity"
           >
-            Empieza gratis hoy
+            Start for free today
             <ArrowRight className="h-5 w-5" />
           </Link>
           <Link
             href="#features"
             className="flex items-center gap-2 rounded-xl border border-border bg-surface px-8 py-4 text-base font-medium text-foreground hover:bg-surface-elevated transition-colors"
           >
-            Ver funcionalidades
+            Explore features
           </Link>
         </div>
-        <p className="mt-4 text-xs text-muted">Sin tarjeta de crédito · 5 generaciones gratis</p>
+        <p className="mt-4 text-xs text-muted">No credit card required · 5 free AI generations</p>
       </section>
 
       {/* Features */}
       <section id="features" className="mx-auto max-w-6xl px-4 py-20">
         <div className="mb-14 text-center">
-          <h2 className="text-3xl font-black sm:text-4xl">Todo lo que necesitas para crecer</h2>
-          <p className="mt-3 text-muted">Un sistema completo para dominar Instagram</p>
+          <h2 className="text-3xl font-black sm:text-4xl">Everything you need to grow</h2>
+          <p className="mt-3 text-muted">One complete system for Instagram growth</p>
         </div>
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {FEATURES.map((f) => (
@@ -215,8 +215,8 @@ export default function LandingPage() {
       {/* Pricing */}
       <section id="pricing" className="mx-auto max-w-6xl px-4 py-20">
         <div className="mb-14 text-center">
-          <h2 className="text-3xl font-black sm:text-4xl">Planes simples y transparentes</h2>
-          <p className="mt-3 text-muted">Empieza gratis, escala cuando estés listo</p>
+          <h2 className="text-3xl font-black sm:text-4xl">Simple, transparent pricing</h2>
+          <p className="mt-3 text-muted">Start for free and scale when you are ready</p>
         </div>
         <div className="grid gap-8 md:grid-cols-3">
           {PLANS.map((plan) => (
@@ -269,7 +269,7 @@ export default function LandingPage() {
       {/* Testimonials */}
       <section className="mx-auto max-w-6xl px-4 py-20">
         <div className="mb-14 text-center">
-          <h2 className="text-3xl font-black sm:text-4xl">Lo que dicen nuestros usuarios</h2>
+          <h2 className="text-3xl font-black sm:text-4xl">What our users say</h2>
         </div>
         <div className="grid gap-6 md:grid-cols-3">
           {TESTIMONIALS.map((t) => (
@@ -293,19 +293,19 @@ export default function LandingPage() {
       <section className="mx-auto max-w-4xl px-4 py-20 text-center">
         <div className="rounded-2xl border border-lime/20 bg-lime/5 p-12">
           <h2 className="text-3xl font-black sm:text-4xl">
-            Empieza a crecer en Instagram hoy
+            Start growing on Instagram today
           </h2>
           <p className="mt-4 text-muted">
-            Únete a creadores y agencias que ya están usando WIA Social para crecer más rápido.
+            Join creators and agencies using WIA Social to build a more effective growth system.
           </p>
           <Link
             href="/login"
             className="mt-8 inline-flex items-center gap-2 rounded-xl gradient-lime px-8 py-4 text-base font-bold text-black hover:opacity-90 transition-opacity"
           >
-            Crear cuenta gratis
+            Create a free account
             <ArrowRight className="h-5 w-5" />
           </Link>
-          <p className="mt-3 text-xs text-muted">Sin tarjeta de crédito requerida</p>
+          <p className="mt-3 text-xs text-muted">No credit card required</p>
         </div>
       </section>
 
@@ -320,11 +320,11 @@ export default function LandingPage() {
               <span className="text-sm font-bold text-foreground">WIA Social</span>
             </div>
             <div className="flex gap-6 text-sm text-muted">
-              <Link href="/privacy" className="hover:text-foreground">Privacidad</Link>
-              <Link href="/terms" className="hover:text-foreground">Términos</Link>
-              <Link href="/login" className="hover:text-foreground">Acceder</Link>
+              <Link href="/privacy" className="hover:text-foreground">Privacy</Link>
+              <Link href="/terms" className="hover:text-foreground">Terms</Link>
+              <Link href="/login" className="hover:text-foreground">Sign in</Link>
             </div>
-            <p className="text-xs text-muted">© 2026 WIA Social. Todos los derechos reservados.</p>
+            <p className="text-xs text-muted">© 2026 WIA Social. All rights reserved.</p>
           </div>
         </div>
       </footer>

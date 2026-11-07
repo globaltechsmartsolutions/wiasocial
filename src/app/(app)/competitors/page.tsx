@@ -79,7 +79,7 @@ export default function CompetitorsPage() {
             <div className="flex flex-wrap gap-2">{comp.patterns?.map((p, i) => <Badge key={i} className="bg-surface-elevated text-foreground border-border">{p}</Badge>)}</div>
           </Card>
         ))}
-        {competitors.length === 0 && <Card className="py-12 text-center text-muted">Añade un competidor para analizar sus patrones de contenido</Card>}
+        {competitors.length === 0 && <Card className="py-12 text-center text-muted">Add a competitor to analyze their content patterns</Card>}
       </div>
     </div>
   );

@@ -278,13 +278,13 @@ export default function SettingsPage() {
               <div className="flex items-center justify-between rounded-lg border border-border bg-surface-elevated p-4">
                 <div className="flex items-center gap-3"><Key className="h-5 w-5 text-lime" /><div><p className="text-sm font-medium">OpenAI API</p><p className="text-xs text-muted">{t.settings.openaiDesc}</p></div></div>
                 <Badge className={openaiOk ? "bg-lime/20 text-lime border-lime/30" : "bg-amber-500/20 text-amber-400 border-amber-500/30"}>
-                  {openaiOk ? "✓ Conectado" : t.settings.configureEnv}
+                  {openaiOk ? "✓ Connected" : t.settings.configureEnv}
                 </Badge>
               </div>
               <div className="flex items-center justify-between rounded-lg border border-border bg-surface-elevated p-4">
                 <div className="flex items-center gap-3"><Database className="h-5 w-5 text-lime" /><div><p className="text-sm font-medium">Supabase</p><p className="text-xs text-muted">{t.settings.supabaseDesc}</p></div></div>
                 <Badge className={supabaseOk ? "bg-lime/20 text-lime border-lime/30" : "bg-amber-500/20 text-amber-400 border-amber-500/30"}>
-                  {supabaseOk ? "✓ Conectado" : t.settings.configureEnv}
+                  {supabaseOk ? "✓ Connected" : t.settings.configureEnv}
                 </Badge>
               </div>
             </div>

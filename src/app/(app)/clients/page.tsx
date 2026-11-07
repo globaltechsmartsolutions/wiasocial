@@ -69,7 +69,7 @@ export default function ClientsPage() {
       setNewClient({ brandName: "", instagramHandle: "", niche: "", monthlyFee: "", status: "active", notes: "" });
       setShowForm(false);
     } catch (e) {
-      setSaveError(e instanceof Error ? e.message : "Error al guardar");
+      setSaveError(e instanceof Error ? e.message : "Unable to save");
     }
   };
 
